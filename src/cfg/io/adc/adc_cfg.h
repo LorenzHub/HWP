@@ -13,7 +13,7 @@
  *  Number of ADC channels to be sampled.
  *  Corresponds to number of entries in array ADC_channels[], see #ADC_CHANNEL_INIT
  */
-#define ADC_CHANNEL_COUNT 2
+#define ADC_CHANNEL_COUNT 5
 
 
 /**
@@ -32,6 +32,9 @@
 #define ADC_CHANNEL_INIT {   \
     ADC_channels[0].channel = 0; \
     ADC_channels[1].channel = 1; \
+    ADC_channels[2].channel = 2; \
+    ADC_channels[3].channel = 3; \
+    ADC_channels[4].channel = 4; \
 }
 
 
