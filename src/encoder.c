@@ -3,7 +3,7 @@
 
 
 void encoder_init(){
-    PORTD = (1<<PD0) | (1<<PD1); // 
+    /* PORTD = (1<<PD0) | (1<<PD1); // 
     PORTB = (1<<PB7)|(1<<PB6); //
 
     DDRD = ~((1<<DDD0) | (1<<DDD1));               // PD0 & PD1 as Inputs
@@ -12,7 +12,12 @@ void encoder_init(){
 
     DDRB = ~((1<<DDB7) | (1<<DDB6));           // PB7 & PB6 as Inputs
     PCICR |= (1<<PCIE0);                        // Pin-Change-Interrupt for each Pin in PCINT7:0
-    PCMSK0 |= ((1<<PCINT7) | (1<<PCINT6));     // PB7 & PB6 (PCINT7/6) enable
+    PCMSK0 |= ((1<<PCINT7) | (1<<PCINT6));     // PB7 & PB6 (PCINT7/6) enable*/
+
+    PORTB = (1<<PB7)|(1<<PB6) |(1<<PB5) |(1<<PB4); //?
+    DDRB = ~((1<<DDB7) | (1<<DDB6) | (1<<DDB5) | (1<<DDB4));           // PB7 & PB6 as Inputs
+    PCICR |= (1<<PCIE0);                        // Pin-Change-Interrupt for each Pin in PCINT7:0
+    PCMSK0 |= ((1<<PCINT7) | (1<<PCINT6))| (1<<PCINT5) | (1<<PCINT4);     // PB7 & PB6 (PCINT7/6) enable
 }
 
 
