@@ -77,6 +77,9 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         communication_writePacket(CH_OUT_RDP, (uint8_t*)&infraredValue, sizeof(infraredValue));
         break;
     }
+    case 5: {
+        
+    }
     }
 }
 
@@ -133,9 +136,8 @@ int main(void) {
         TIMETASK(TELEMETRY_TASK, 300) { // execute block approximately every 300ms
             // send telemetry data to HWPCS
             Telemetry_t telemetry;
-            telemetry.bumpers.value = 0; // initialize with zero
-            telemetry.bumpers.bitset.bit1 = 1;
-            telemetry.contacts = 0;
+            telemetry.bumpers = bumper_getBumpers();
+            telemetry.contacts = bumper_getContacts();
             telemetry.encoder1 = encoder_getCountR();
             telemetry.encoder2 = encoder_getCountL();
             telemetry.infrared1 = ADC_getFilteredValue(0); //right front
