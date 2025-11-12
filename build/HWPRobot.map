@@ -101,7 +101,7 @@ __brkval            0x2               /usr/lib/gcc/avr/7.3.0/../../../avr/lib/av
 uart1_TX_buf        0x100             CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
 __flp               0x2               /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(malloc.o)
 ADC_currentChannel  0x2               CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
-ADC_channels        0x32              CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+ADC_channels        0xc8              CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
 
 Discarded input sections
 
@@ -117,14 +117,12 @@ Discarded input sections
  .text          0x0000000000000000        0x0 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
  .data          0x0000000000000000        0x0 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
  .bss           0x0000000000000000        0x0 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
- .text.ADC_init
-                0x0000000000000000       0xbe CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
  .text.ADC_getLastValue
-                0x0000000000000000       0x30 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+                0x0000000000000000       0x2a CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
  .text.ADC_isUpToDate
-                0x0000000000000000       0x22 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+                0x0000000000000000       0x16 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
  .text.ADC_setUpToDate
-                0x0000000000000000       0x20 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+                0x0000000000000000       0x14 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
  .data          0x0000000000000000        0x0 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc_isr.S.obj
  .bss           0x0000000000000000        0x0 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc_isr.S.obj
  .text          0x0000000000000000        0x0 CMakeFiles/HWPRobot.elf.dir/lib/io/i2c/i2c.c.obj
@@ -610,7 +608,7 @@ END GROUP
 .rela.plt
  *(.rela.plt)
 
-.text           0x0000000000000000     0x1f88
+.text           0x0000000000000000     0x22e8
  *(.vectors)
  .vectors       0x0000000000000000       0xe4 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/crtatmega1280.o
                 0x0000000000000000                __vectors
@@ -641,7 +639,7 @@ END GROUP
                 0x000000000000015c       0x2b CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
  .progmem.data.__c.2323
                 0x0000000000000187       0x33 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
- .progmem.data.__c.2143
+ .progmem.data.__c.2194
                 0x00000000000001ba        0x7 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
                 0x00000000000001c2                . = ALIGN (0x2)
  *fill*         0x00000000000001c1        0x1 
@@ -692,7 +690,6 @@ END GROUP
                 0x0000000000000200                __vector_38
                 0x0000000000000200                __vector_22
                 0x0000000000000200                __vector_28
-                0x0000000000000200                __vector_1
                 0x0000000000000200                __vector_32
                 0x0000000000000200                __vector_34
                 0x0000000000000200                __vector_24
@@ -726,8 +723,6 @@ END GROUP
                 0x0000000000000200                __vector_4
                 0x0000000000000200                __vector_44
                 0x0000000000000200                __vector_51
-                0x0000000000000200                __vector_9
-                0x0000000000000200                __vector_2
                 0x0000000000000200                __vector_21
                 0x0000000000000200                __vector_15
                 0x0000000000000200                __vector_40
@@ -771,218 +766,242 @@ END GROUP
  .text.communication_readPackets
                 0x00000000000006ac        0xa CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
                 0x00000000000006ac                communication_readPackets
+ .text.ADC_init
+                0x00000000000006b6       0xbc CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+                0x00000000000006b6                ADC_init
  .text.ADC_getFilteredValue
-                0x00000000000006b6       0x36 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
-                0x00000000000006b6                ADC_getFilteredValue
+                0x0000000000000772       0x2c CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+                0x0000000000000772                ADC_getFilteredValue
  .text.uart_write1
-                0x00000000000006ec       0x24 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
-                0x00000000000006ec                uart_write1
+                0x000000000000079e       0x24 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
+                0x000000000000079e                uart_write1
  .text.uart_read1
-                0x0000000000000710       0x24 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
-                0x0000000000000710                uart_read1
+                0x00000000000007c2       0x24 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
+                0x00000000000007c2                uart_read1
  .text.uart_available1
-                0x0000000000000734       0x12 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
-                0x0000000000000734                uart_available1
+                0x00000000000007e6       0x12 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
+                0x00000000000007e6                uart_available1
  .text.uart_init
-                0x0000000000000746       0x26 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
-                0x0000000000000746                uart_init
+                0x00000000000007f8       0x26 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
+                0x00000000000007f8                uart_init
  .text.Motor_init
-                0x000000000000076c       0x98 CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
-                0x000000000000076c                Motor_init
+                0x000000000000081e       0x98 CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
+                0x000000000000081e                Motor_init
  .text.Motor_setPWM
-                0x0000000000000804       0x70 CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
-                0x0000000000000804                Motor_setPWM
+                0x00000000000008b6       0x70 CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
+                0x00000000000008b6                Motor_setPWM
  .text.Motor_stopAll
-                0x0000000000000874       0x2c CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
-                0x0000000000000874                Motor_stopAll
+                0x0000000000000926       0x2c CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
+                0x0000000000000926                Motor_stopAll
  .text.commPathFollowerParameters
-                0x00000000000008a0       0x5e CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
-                0x00000000000008a0                commPathFollowerParameters
+                0x0000000000000952       0x5e CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x0000000000000952                commPathFollowerParameters
  .text.setPath.part.0
-                0x00000000000008fe      0x162 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x00000000000009b0      0x168 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
  .text.commPathFollower
-                0x0000000000000a60      0x11e CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
-                0x0000000000000a60                commPathFollower
+                0x0000000000000b18      0x11e CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x0000000000000b18                commPathFollower
  .text.pathFollower_init
-                0x0000000000000b7e       0x10 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
-                0x0000000000000b7e                pathFollower_init
+                0x0000000000000c36       0x10 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x0000000000000c36                pathFollower_init
  .text.timeTask_init
-                0x0000000000000b8e       0x44 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
-                0x0000000000000b8e                timeTask_init
+                0x0000000000000c46       0x44 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
+                0x0000000000000c46                timeTask_init
  .text.timeTask_getTimestamp
-                0x0000000000000bd2       0x2e CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
-                0x0000000000000bd2                timeTask_getTimestamp
+                0x0000000000000c8a       0x2e CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
+                0x0000000000000c8a                timeTask_getTimestamp
  .text.timeTask_getDuration
-                0x0000000000000c00       0x50 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
-                0x0000000000000c00                timeTask_getDuration
+                0x0000000000000cb8       0x50 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
+                0x0000000000000cb8                timeTask_getDuration
  .text.__vector_default
-                0x0000000000000c50       0x30 CMakeFiles/HWPRobot.elf.dir/src/badISR.c.obj
-                0x0000000000000c50                __vector_default
+                0x0000000000000d08       0x30 CMakeFiles/HWPRobot.elf.dir/src/badISR.c.obj
+                0x0000000000000d08                __vector_default
  .text.commDriveCommand
-                0x0000000000000c80        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                0x0000000000000d38        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
  .text.commDebug
-                0x0000000000000c82       0x1e CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                0x0000000000000d3a       0x1e CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
  .text.commUserCommand
-                0x0000000000000ca0       0x7a CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                0x0000000000000d58       0xe4 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
  .text.commPose
-                0x0000000000000d1a        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                0x0000000000000e3c        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
  .text.commAdditionalPose
-                0x0000000000000d1c        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                0x0000000000000e3e        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
  .text.commRobotParameters
-                0x0000000000000d1e        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                0x0000000000000e40        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
  .text.startup.main
-                0x0000000000000d20      0x23c CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
-                0x0000000000000d20                main
+                0x0000000000000e42      0x23a CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                0x0000000000000e42                main
  .text.drive_Forward_5sec
-                0x0000000000000f5c       0x64 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
-                0x0000000000000f5c                drive_Forward_5sec
+                0x000000000000107c       0x64 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+                0x000000000000107c                drive_Forward_5sec
  .text.stateMachine
-                0x0000000000000fc0       0x12 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
-                0x0000000000000fc0                stateMachine
+                0x00000000000010e0       0x2c CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+                0x00000000000010e0                stateMachine
  .text.setState
-                0x0000000000000fd2        0x6 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
-                0x0000000000000fd2                setState
+                0x000000000000110c        0x6 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+                0x000000000000110c                setState
  .text.bumper_init
-                0x0000000000000fd8        0x6 CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
-                0x0000000000000fd8                bumper_init
+                0x0000000000001112       0x1e CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+                0x0000000000001112                bumper_init
+ .text.__vector_1
+                0x0000000000001130       0x22 CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+                0x0000000000001130                __vector_1
+ .text.__vector_2
+                0x0000000000001152       0x4e CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+                0x0000000000001152                __vector_2
+ .text.bumper_getContacts
+                0x00000000000011a0        0x6 CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+                0x00000000000011a0                bumper_getContacts
+ .text.bumper_getBumpers
+                0x00000000000011a6        0xe CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+                0x00000000000011a6                bumper_getBumpers
  .text.encoder_init
-                0x0000000000000fde        0xa CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
-                0x0000000000000fde                encoder_init
+                0x00000000000011b4       0x24 CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
+                0x00000000000011b4                encoder_init
+ .text.__vector_9
+                0x00000000000011d8      0x15c CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
+                0x00000000000011d8                __vector_9
+ .text.encoder_getCountR
+                0x0000000000001334        0xa CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
+                0x0000000000001334                encoder_getCountR
+ .text.encoder_getCountL
+                0x000000000000133e        0xa CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
+                0x000000000000133e                encoder_getCountL
  .text.avr-libc.fplib
-                0x0000000000000fe8        0xa /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(addsf3.o)
-                0x0000000000000fe8                __subsf3
-                0x0000000000000fea                __addsf3
+                0x0000000000001348        0xa /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(addsf3.o)
+                0x0000000000001348                __subsf3
+                0x000000000000134a                __addsf3
  .text.avr-libc.fplib
-                0x0000000000000ff2       0xc0 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(addsf3x.o)
-                0x000000000000100c                __addsf3x
+                0x0000000000001352       0xc0 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(addsf3x.o)
+                0x000000000000136c                __addsf3x
  .text.avr-libc.fplib
-                0x00000000000010b2        0x6 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(cos.o)
-                0x00000000000010b2                cos
+                0x0000000000001412        0x6 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(cos.o)
+                0x0000000000001412                cos
  .text.avr-libc.fplib
-                0x00000000000010b8        0x4 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(divsf3.o)
-                0x00000000000010b8                __divsf3
+                0x0000000000001418        0x4 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(divsf3.o)
+                0x0000000000001418                __divsf3
  .text.avr-libc.fplib
-                0x00000000000010bc       0xcc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(divsf3x.o)
-                0x00000000000010d2                __divsf3x
-                0x00000000000010d6                __divsf3_pse
+                0x000000000000141c       0xcc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(divsf3x.o)
+                0x0000000000001432                __divsf3x
+                0x0000000000001436                __divsf3_pse
  .text.avr-libc.fplib
-                0x0000000000001188        0xa /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fixsfsi.o)
-                0x0000000000001188                __fixsfsi
+                0x00000000000014e8        0xa /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fixsfsi.o)
+                0x00000000000014e8                __fixsfsi
  .text.avr-libc.fplib
-                0x0000000000001192       0x58 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fixunssfsi.o)
-                0x0000000000001192                __fixunssfsi
+                0x00000000000014f2       0x58 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fixunssfsi.o)
+                0x00000000000014f2                __fixunssfsi
  .text.avr-libc.fplib
-                0x00000000000011ea       0x7a /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(floatsisf.o)
-                0x00000000000011ea                __floatunsisf
-                0x00000000000011ee                __floatsisf
+                0x000000000000154a       0x7a /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(floatsisf.o)
+                0x000000000000154a                __floatunsisf
+                0x000000000000154e                __floatsisf
  .text.avr-libc.fplib
-                0x0000000000001264       0x48 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_cmp.o)
-                0x0000000000001264                __fp_cmp
+                0x00000000000015c4       0x48 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_cmp.o)
+                0x00000000000015c4                __fp_cmp
  .text.avr-libc.fplib
-                0x00000000000012ac        0xc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_inf.o)
-                0x00000000000012ac                __fp_inf
+                0x000000000000160c        0xc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_inf.o)
+                0x000000000000160c                __fp_inf
  .text.avr-libc.fplib
-                0x00000000000012b8        0x6 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_nan.o)
-                0x00000000000012b8                __fp_nan
+                0x0000000000001618        0x6 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_nan.o)
+                0x0000000000001618                __fp_nan
  .text.avr-libc.fplib
-                0x00000000000012be        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_pscA.o)
-                0x00000000000012be                __fp_pscA
+                0x000000000000161e        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_pscA.o)
+                0x000000000000161e                __fp_pscA
  .text.avr-libc.fplib
-                0x00000000000012cc        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_pscB.o)
-                0x00000000000012cc                __fp_pscB
+                0x000000000000162c        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_pscB.o)
+                0x000000000000162c                __fp_pscB
  .text.avr-libc.fplib
-                0x00000000000012da       0x50 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_rempio2.o)
-                0x00000000000012dc                __fp_rempio2
+                0x000000000000163a       0x50 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_rempio2.o)
+                0x000000000000163c                __fp_rempio2
  .text.avr-libc.fplib
-                0x000000000000132a       0x22 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_round.o)
-                0x000000000000132a                __fp_round
+                0x000000000000168a       0x22 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_round.o)
+                0x000000000000168a                __fp_round
  .text.avr-libc.fplib
-                0x000000000000134c       0x22 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_sinus.o)
-                0x000000000000134c                __fp_sinus
+                0x00000000000016ac       0x22 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_sinus.o)
+                0x00000000000016ac                __fp_sinus
  .text.avr-libc.fplib
-                0x000000000000136e       0x44 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_split3.o)
-                0x000000000000136e                __fp_split3
-                0x000000000000137e                __fp_splitA
+                0x00000000000016ce       0x44 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_split3.o)
+                0x00000000000016ce                __fp_split3
+                0x00000000000016de                __fp_splitA
  .text.avr-libc.fplib
-                0x00000000000013b2        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_zero.o)
-                0x00000000000013b2                __fp_zero
-                0x00000000000013b4                __fp_szero
+                0x0000000000001712        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_zero.o)
+                0x0000000000001712                __fp_zero
+                0x0000000000001714                __fp_szero
  .text.avr-libc.fplib
-                0x00000000000013c0        0x8 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(gesf2.o)
-                0x00000000000013c0                __gtsf2
-                0x00000000000013c0                __gesf2
+                0x0000000000001720        0x8 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(gesf2.o)
+                0x0000000000001720                __gtsf2
+                0x0000000000001720                __gesf2
  .text.avr-libc.fplib
-                0x00000000000013c8       0xc2 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(hypot.o)
-                0x00000000000013da                hypot
+                0x0000000000001728       0xc2 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(hypot.o)
+                0x000000000000173a                hypot
  .text.avr-libc.fplib
-                0x000000000000148a       0x6c /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(ldexp.o)
-                0x000000000000148e                ldexp
+                0x00000000000017ea       0x6c /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(ldexp.o)
+                0x00000000000017ee                ldexp
  .text.avr-libc.fplib
-                0x00000000000014f6        0x4 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(mulsf3.o)
-                0x00000000000014f6                __mulsf3
+                0x0000000000001856        0x4 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(mulsf3.o)
+                0x0000000000001856                __mulsf3
  .text.avr-libc.fplib
-                0x00000000000014fa       0xc2 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(mulsf3x.o)
-                0x000000000000150e                __mulsf3x
-                0x0000000000001512                __mulsf3_pse
+                0x000000000000185a       0xc2 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(mulsf3x.o)
+                0x000000000000186e                __mulsf3x
+                0x0000000000001872                __mulsf3_pse
  .text.avr-libc.fplib
-                0x00000000000015bc        0xc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(sin.o)
-                0x00000000000015bc                sin
+                0x000000000000191c        0xc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(sin.o)
+                0x000000000000191c                sin
  .text.avr-libc.fplib
-                0x00000000000015c8       0x84 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(sqrt.o)
-                0x00000000000015d0                sqrt
-                0x00000000000015d0                sqrtf
+                0x0000000000001928       0x84 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(sqrt.o)
+                0x0000000000001930                sqrt
+                0x0000000000001930                sqrtf
  .text.avr-libc.fplib
-                0x000000000000164c       0x1c /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_mpack.o)
-                0x000000000000164c                __fp_mpack
-                0x0000000000001650                __fp_mpack_finite
+                0x00000000000019ac       0x1c /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_mpack.o)
+                0x00000000000019ac                __fp_mpack
+                0x00000000000019b0                __fp_mpack_finite
  .text.avr-libc.fplib
-                0x0000000000001668        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_norm2.o)
-                0x0000000000001668                __fp_norm2
+                0x00000000000019c8        0xe /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_norm2.o)
+                0x00000000000019c8                __fp_norm2
  .text.avr-libc.fplib
-                0x0000000000001676       0x22 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_powsodd.o)
-                0x0000000000001676                __fp_powsodd
+                0x00000000000019d6       0x22 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_powsodd.o)
+                0x00000000000019d6                __fp_powsodd
  .text.avr-libc.fplib
-                0x0000000000001698       0x4a /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_powser.o)
-                0x0000000000001698                __fp_powser
+                0x00000000000019f8       0x4a /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libm.a(fp_powser.o)
+                0x00000000000019f8                __fp_powser
  .text.libgcc.mul
-                0x00000000000016e2       0x14 /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_muluhisi3.o)
-                0x00000000000016e2                __muluhisi3
+                0x0000000000001a42       0x14 /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_muluhisi3.o)
+                0x0000000000001a42                __muluhisi3
  .text.libgcc.mul
-                0x00000000000016f6       0x1e /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_umulhisi3.o)
-                0x00000000000016f6                __umulhisi3
+                0x0000000000001a56       0x1e /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_umulhisi3.o)
+                0x0000000000001a56                __umulhisi3
  .text.avr-libc
-                0x0000000000001714      0x24a /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(malloc.o)
-                0x0000000000001714                malloc
-                0x000000000000184c                free
+                0x0000000000001a74      0x24a /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(malloc.o)
+                0x0000000000001a74                malloc
+                0x0000000000001bac                free
  .text.avr-libc
-                0x000000000000195e       0x12 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(memcpy.o)
-                0x000000000000195e                memcpy
+                0x0000000000001cbe       0x12 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(memcpy.o)
+                0x0000000000001cbe                memcpy
  .text.avr-libc
-                0x0000000000001970       0x70 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(vsnprintf.o)
-                0x0000000000001970                vsnprintf
+                0x0000000000001cd0       0x70 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(vsnprintf.o)
+                0x0000000000001cd0                vsnprintf
  .text.avr-libc
-                0x00000000000019e0       0x70 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(vsnprintf_p.o)
-                0x00000000000019e0                vsnprintf_P
+                0x0000000000001d40       0x70 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(vsnprintf_p.o)
+                0x0000000000001d40                vsnprintf_P
  .text.avr-libc
-                0x0000000000001a50      0x3ec /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(vfprintf_std.o)
-                0x0000000000001a50                vfprintf
+                0x0000000000001db0      0x3ec /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(vfprintf_std.o)
+                0x0000000000001db0                vfprintf
  .text.avr-libc
-                0x0000000000001e3c       0x16 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(strnlen_P.o)
-                0x0000000000001e3c                strnlen_P
+                0x000000000000219c       0x16 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(strnlen_P.o)
+                0x000000000000219c                strnlen_P
  .text.avr-libc
-                0x0000000000001e52       0x16 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(strnlen.o)
-                0x0000000000001e52                strnlen
+                0x00000000000021b2       0x16 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(strnlen.o)
+                0x00000000000021b2                strnlen
  .text.avr-libc
-                0x0000000000001e68       0x60 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(fputc.o)
-                0x0000000000001e68                fputc
+                0x00000000000021c8       0x60 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(fputc.o)
+                0x00000000000021c8                fputc
  .text.avr-libc
-                0x0000000000001ec8       0xbc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(ultoa_invert.o)
-                0x0000000000001ec8                __ultoa_invert
-                0x0000000000001f84                . = ALIGN (0x2)
+                0x0000000000002228       0xbc /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(ultoa_invert.o)
+                0x0000000000002228                __ultoa_invert
+                0x00000000000022e4                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x0000000000001f84        0x0 /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_exit.o)
-                0x0000000000001f84                exit
-                0x0000000000001f84                _exit
+ .fini9         0x00000000000022e4        0x0 /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_exit.o)
+                0x00000000000022e4                exit
+                0x00000000000022e4                _exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -1001,11 +1020,11 @@ END GROUP
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x0000000000001f84        0x4 /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_exit.o)
+ .fini0         0x00000000000022e4        0x4 /usr/lib/gcc/avr/7.3.0/avr51/libgcc.a(_exit.o)
  *(.fini0)
-                0x0000000000001f88                _etext = .
+                0x00000000000022e8                _etext = .
 
-.data           0x0000000000800200       0x30 load address 0x0000000000001f88
+.data           0x0000000000800200       0x86 load address 0x00000000000022e8
                 0x0000000000800200                PROVIDE (__data_start, .)
  *(.data)
  .data          0x0000000000800200        0x6 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(malloc.o)
@@ -1027,72 +1046,81 @@ END GROUP
  *(.rodata*)
  .rodata.commDebug.str1.1
                 0x000000000080021d       0x12 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+ .rodata.commUserCommand.str1.1
+                0x000000000080022f       0x57 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
  *(.gnu.linkonce.r*)
-                0x0000000000800230                . = ALIGN (0x2)
- *fill*         0x000000000080022f        0x1 
-                0x0000000000800230                _edata = .
-                0x0000000000800230                PROVIDE (__data_end, .)
+                0x0000000000800286                . = ALIGN (0x2)
+                0x0000000000800286                _edata = .
+                0x0000000000800286                PROVIDE (__data_end, .)
 
-.bss            0x0000000000800230      0x612
-                0x0000000000800230                PROVIDE (__bss_start, .)
+.bss            0x0000000000800286      0x6af
+                0x0000000000800286                PROVIDE (__bss_start, .)
  *(.bss)
  *(.bss*)
- .bss.errors    0x0000000000800230        0x1 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
- .bss.inChksum  0x0000000000800231        0x1 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
- .bss.isESC     0x0000000000800232        0x1 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
- .bss.inBufLen  0x0000000000800233        0x2 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
- .bss.inBuf     0x0000000000800235      0x400 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
+ .bss.errors    0x0000000000800286        0x1 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
+ .bss.inChksum  0x0000000000800287        0x1 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
+ .bss.isESC     0x0000000000800288        0x1 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
+ .bss.inBufLen  0x0000000000800289        0x2 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
+ .bss.inBuf     0x000000000080028b      0x400 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
  .bss.communication_ChannelReceivers
-                0x0000000000800635       0x20 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
- .bss.uart1     0x0000000000800655        0x5 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
-                0x0000000000800655                uart1
+                0x000000000080068b       0x20 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
+ .bss.uart1     0x00000000008006ab        0x5 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
+                0x00000000008006ab                uart1
  .bss.initialized
-                0x000000000080065a        0x1 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x00000000008006b0        0x1 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
  .bss.pathLength
-                0x000000000080065b        0x1 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
- .bss.path      0x000000000080065c        0x2 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x00000000008006b1        0x1 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+ .bss.path      0x00000000008006b2        0x2 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
  .bss.pathFollower_callback
-                0x000000000080065e        0x2 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x00000000008006b4        0x2 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
  .bss.pathFollower_extStatus
-                0x0000000000800660        0x5 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x00000000008006b6        0x5 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
  .bss.pathFollower_status
-                0x0000000000800665       0x11 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+                0x00000000008006bb       0x11 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
  .bss.timeTask_time_ms
-                0x0000000000800676        0x4 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
-                0x0000000000800676                timeTask_time_ms
- .bss.t_index.2155
-                0x000000000080067a        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
- .bss.POSE_TASK.2152
-                0x000000000080067c        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
- .bss.TELEMETRY_TASK.2148
-                0x000000000080067e        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
- .bss.LED_TASK.2145
-                0x0000000000800680        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
- .bss.initialized.1548
-                0x0000000000800682        0x1 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
- .bss.start     0x0000000000800683        0x6 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+                0x00000000008006cc        0x4 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
+                0x00000000008006cc                timeTask_time_ms
+ .bss.t_index.2206
+                0x00000000008006d0        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+ .bss.POSE_TASK.2203
+                0x00000000008006d2        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+ .bss.TELEMETRY_TASK.2199
+                0x00000000008006d4        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+ .bss.LED_TASK.2196
+                0x00000000008006d6        0x2 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+ .bss.initialized.1551
+                0x00000000008006d8        0x1 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+ .bss.start     0x00000000008006d9        0x6 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
  .bss.currentState
-                0x0000000000800689        0x1 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+                0x00000000008006df        0x1 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+                0x00000000008006df                currentState
+ .bss.bumpers   0x00000000008006e0        0x1 CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+ .bss.contacts  0x00000000008006e1        0x1 CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+ .bss.LeftEncoderCounter
+                0x00000000008006e2        0x2 CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
+ .bss.rightEncoderCounter
+                0x00000000008006e4        0x2 CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
+ .bss.pinOld    0x00000000008006e6        0x1 CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
  *(COMMON)
- COMMON         0x000000000080068a       0x34 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
-                0x000000000080068a                ADC_currentChannel
-                0x000000000080068c                ADC_channels
- COMMON         0x00000000008006be      0x180 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
-                0x00000000008006be                uart1_RX_buf
-                0x000000000080073e                uart1_TX_buf
- COMMON         0x000000000080083e        0x4 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(malloc.o)
-                0x000000000080083e                __brkval
-                0x0000000000800840                __flp
-                0x0000000000800842                PROVIDE (__bss_end, .)
-                0x0000000000001f88                __data_load_start = LOADADDR (.data)
-                0x0000000000001fb8                __data_load_end = (__data_load_start + SIZEOF (.data))
+ COMMON         0x00000000008006e7       0xca CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+                0x00000000008006e7                ADC_currentChannel
+                0x00000000008006e9                ADC_channels
+ COMMON         0x00000000008007b1      0x180 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
+                0x00000000008007b1                uart1_RX_buf
+                0x0000000000800831                uart1_TX_buf
+ COMMON         0x0000000000800931        0x4 /usr/lib/gcc/avr/7.3.0/../../../avr/lib/avr51/libc.a(malloc.o)
+                0x0000000000800931                __brkval
+                0x0000000000800933                __flp
+                0x0000000000800935                PROVIDE (__bss_end, .)
+                0x00000000000022e8                __data_load_start = LOADADDR (.data)
+                0x000000000000236e                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x0000000000800842        0x0
+.noinit         0x0000000000800935        0x0
                 [!provide]                        PROVIDE (__noinit_start, .)
  *(.noinit*)
                 [!provide]                        PROVIDE (__noinit_end, .)
-                0x0000000000800842                _end = .
-                0x0000000000800842                PROVIDE (__heap_start, .)
+                0x0000000000800935                _end = .
+                0x0000000000800935                PROVIDE (__heap_start, .)
 
 .eeprom         0x0000000000810000        0x0
  *(.eeprom*)
@@ -1113,40 +1141,40 @@ END GROUP
 .user_signatures
  *(.user_signatures*)
 
-.stab           0x0000000000000000     0x4b3c
+.stab           0x0000000000000000     0x5274
  *(.stab)
  .stab          0x0000000000000000      0xf30 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
                                         0xffc (size before relaxing)
- .stab          0x0000000000000f30      0x4ec CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
+ .stab          0x0000000000000f30      0x78c CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc.c.obj
                                         0xbb8 (size before relaxing)
- .stab          0x000000000000141c      0x354 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc_isr.S.obj
+ .stab          0x00000000000016bc      0x354 CMakeFiles/HWPRobot.elf.dir/lib/io/adc/adc_isr.S.obj
                                         0x360 (size before relaxing)
- .stab          0x0000000000001770      0x504 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
+ .stab          0x0000000000001a10      0x504 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart.c.obj
                                         0x894 (size before relaxing)
- .stab          0x0000000000001c74       0x30 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart_isr.S.obj
+ .stab          0x0000000000001f14       0x30 CMakeFiles/HWPRobot.elf.dir/lib/io/uart/uart_isr.S.obj
                                          0x3c (size before relaxing)
- .stab          0x0000000000001ca4      0x600 CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
+ .stab          0x0000000000001f44      0x600 CMakeFiles/HWPRobot.elf.dir/lib/motor/motor.c.obj
                                         0x9d8 (size before relaxing)
- .stab          0x00000000000022a4      0x8d0 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
+ .stab          0x0000000000002544      0x8d0 CMakeFiles/HWPRobot.elf.dir/lib/pathFollower/pathFollower.c.obj
                                        0x18d8 (size before relaxing)
- .stab          0x0000000000002b74      0x5e8 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
+ .stab          0x0000000000002e14      0x5e8 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask.c.obj
                                         0x7c8 (size before relaxing)
- .stab          0x000000000000315c      0x234 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask_isr.S.obj
+ .stab          0x00000000000033fc      0x234 CMakeFiles/HWPRobot.elf.dir/lib/tools/timeTask/timeTask_isr.S.obj
                                         0x240 (size before relaxing)
- .stab          0x0000000000003390      0x384 CMakeFiles/HWPRobot.elf.dir/src/badISR.c.obj
+ .stab          0x0000000000003630      0x384 CMakeFiles/HWPRobot.elf.dir/src/badISR.c.obj
                                         0x54c (size before relaxing)
- .stab          0x0000000000003714      0x924 CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
-                                        0xcfc (size before relaxing)
- .stab          0x0000000000004038      0x4b0 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
-                                        0x6c0 (size before relaxing)
- .stab          0x00000000000044e8      0x324 CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
-                                        0x4ec (size before relaxing)
- .stab          0x000000000000480c      0x330 CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
-                                        0x4f8 (size before relaxing)
+ .stab          0x00000000000039b4      0x93c CMakeFiles/HWPRobot.elf.dir/src/main.c.obj
+                                        0xd14 (size before relaxing)
+ .stab          0x00000000000042f0      0x4c8 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj
+                                        0x6d8 (size before relaxing)
+ .stab          0x00000000000047b8      0x48c CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj
+                                        0x69c (size before relaxing)
+ .stab          0x0000000000004c44      0x630 CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj
+                                        0x990 (size before relaxing)
 
-.stabstr        0x0000000000000000     0x39f4
+.stabstr        0x0000000000000000     0x3b19
  *(.stabstr)
- .stabstr       0x0000000000000000     0x39f4 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
+ .stabstr       0x0000000000000000     0x3b19 CMakeFiles/HWPRobot.elf.dir/lib/communication/communication.c.obj
 
 .stab.excl
  *(.stab.excl)

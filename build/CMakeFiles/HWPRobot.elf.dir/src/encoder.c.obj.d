@@ -6,4 +6,9 @@ CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj: \
  /usr/lib/avr/include/avr/portpins.h /usr/lib/avr/include/avr/common.h \
  /usr/lib/avr/include/avr/version.h /usr/lib/avr/include/avr/fuse.h \
  /usr/lib/avr/include/avr/lock.h \
- /home/lorenz/Desktop/HWP/HWPRobot/src/encoder.h
+ /home/lorenz/Desktop/HWP/HWPRobot/src/encoder.h \
+ /usr/lib/avr/include/avr/interrupt.h \
+ /home/lorenz/Desktop/HWP/HWPRobot/lib/communication/communication.h \
+ /home/lorenz/Desktop/HWP/HWPRobot/lib/communication/packetTypes.h \
+ /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/variablesAccess.h \
+ /usr/lib/gcc/avr/7.3.0/include/stdbool.h

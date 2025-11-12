@@ -19,8 +19,11 @@ CMakeFiles/HWPRobot.elf.dir/src/main.c.obj: \
  /home/lorenz/Desktop/HWP/HWPRobot/lib/motor/motor.h \
  /home/lorenz/Desktop/HWP/HWPRobot/lib/pathFollower/pathFollower.h \
  /home/lorenz/Desktop/HWP/HWPRobot/lib/communication/packetTypes.h \
+ /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/remoteDataProcessing/remoteDataProcessing.h \
  /usr/lib/avr/include/avr/interrupt.h /usr/lib/avr/include/avr/pgmspace.h \
- /usr/lib/gcc/avr/7.3.0/include/stddef.h /usr/lib/avr/include/math.h \
+ /usr/lib/gcc/avr/7.3.0/include/stddef.h \
+ /usr/lib/avr/include/util/delay.h \
+ /usr/lib/avr/include/util/delay_basic.h /usr/lib/avr/include/math.h \
  /home/lorenz/Desktop/HWP/HWPRobot/src/statemachine.h \
  /home/lorenz/Desktop/HWP/HWPRobot/lib/io/adc/adc.h \
  /home/lorenz/Desktop/HWP/HWPRobot/src/cfg/io/adc/adc_cfg.h \

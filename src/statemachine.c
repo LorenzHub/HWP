@@ -18,8 +18,8 @@ void stateMachine() {
             /* rotate in-place */
             Motor_setPWM(3000, -3000);
             break;
-        case Drive_Forward:
-            //do something
+        case Drive_Forward: //Motor A drives left wheel, Motor B drives right wheel
+            Motor_setPWM(3000, 2930);
             break;
         case Drive_Forward_5sec:
             drive_Forward_5sec();

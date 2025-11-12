@@ -184,9 +184,11 @@ CMakeFiles/HWPRobot.elf.dir/src/badISR.c.obj: /home/lorenz/Desktop/HWP/HWPRobot/
   /usr/lib/gcc/avr/7.3.0/include/stdint.h
 
 CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj: /home/lorenz/Desktop/HWP/HWPRobot/src/bumper.c \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/variablesAccess.h \
   /home/lorenz/Desktop/HWP/HWPRobot/src/bumper.h \
   /usr/lib/avr/include/avr/common.h \
   /usr/lib/avr/include/avr/fuse.h \
+  /usr/lib/avr/include/avr/interrupt.h \
   /usr/lib/avr/include/avr/io.h \
   /usr/lib/avr/include/avr/iom1280.h \
   /usr/lib/avr/include/avr/lock.h \
@@ -198,9 +200,13 @@ CMakeFiles/HWPRobot.elf.dir/src/bumper.c.obj: /home/lorenz/Desktop/HWP/HWPRobot/
   /usr/lib/gcc/avr/7.3.0/include/stdint.h
 
 CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj: /home/lorenz/Desktop/HWP/HWPRobot/src/encoder.c \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/communication/communication.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/communication/packetTypes.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/variablesAccess.h \
   /home/lorenz/Desktop/HWP/HWPRobot/src/encoder.h \
   /usr/lib/avr/include/avr/common.h \
   /usr/lib/avr/include/avr/fuse.h \
+  /usr/lib/avr/include/avr/interrupt.h \
   /usr/lib/avr/include/avr/io.h \
   /usr/lib/avr/include/avr/iom1280.h \
   /usr/lib/avr/include/avr/lock.h \
@@ -209,6 +215,44 @@ CMakeFiles/HWPRobot.elf.dir/src/encoder.c.obj: /home/lorenz/Desktop/HWP/HWPRobot
   /usr/lib/avr/include/avr/version.h \
   /usr/lib/avr/include/inttypes.h \
   /usr/lib/avr/include/stdint.h \
+  /usr/lib/gcc/avr/7.3.0/include/stdbool.h \
+  /usr/lib/gcc/avr/7.3.0/include/stdint.h
+
+CMakeFiles/HWPRobot.elf.dir/src/main.c.obj: /home/lorenz/Desktop/HWP/HWPRobot/src/main.c \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/communication/communication.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/communication/packetTypes.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/io/adc/adc.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/io/led/led.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/io/uart/uart.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/motor/motor.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/pathFollower/pathFollower.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/powerSaver.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/remoteDataProcessing/remoteDataProcessing.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/timeTask/GPIOR0Defs.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/timeTask/timeTask.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/variablesAccess.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/src/bumper.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/src/cfg/io/adc/adc_cfg.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/src/cfg/io/uart/uart_cfg.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/src/encoder.h \
+  /home/lorenz/Desktop/HWP/HWPRobot/src/statemachine.h \
+  /usr/lib/avr/include/avr/common.h \
+  /usr/lib/avr/include/avr/fuse.h \
+  /usr/lib/avr/include/avr/interrupt.h \
+  /usr/lib/avr/include/avr/io.h \
+  /usr/lib/avr/include/avr/iom1280.h \
+  /usr/lib/avr/include/avr/lock.h \
+  /usr/lib/avr/include/avr/pgmspace.h \
+  /usr/lib/avr/include/avr/portpins.h \
+  /usr/lib/avr/include/avr/sfr_defs.h \
+  /usr/lib/avr/include/avr/version.h \
+  /usr/lib/avr/include/inttypes.h \
+  /usr/lib/avr/include/math.h \
+  /usr/lib/avr/include/stdint.h \
+  /usr/lib/avr/include/util/delay.h \
+  /usr/lib/avr/include/util/delay_basic.h \
+  /usr/lib/gcc/avr/7.3.0/include/stdbool.h \
+  /usr/lib/gcc/avr/7.3.0/include/stddef.h \
   /usr/lib/gcc/avr/7.3.0/include/stdint.h
 
 CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj: /home/lorenz/Desktop/HWP/HWPRobot/src/statemachine.c \
@@ -230,6 +274,8 @@ CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj: /home/lorenz/Desktop/HWP/HWP
 
 
 /home/lorenz/Desktop/HWP/HWPRobot/src/statemachine.c:
+
+/home/lorenz/Desktop/HWP/HWPRobot/src/main.c:
 
 /home/lorenz/Desktop/HWP/HWPRobot/src/encoder.h:
 
@@ -326,6 +372,8 @@ CMakeFiles/HWPRobot.elf.dir/src/statemachine.c.obj: /home/lorenz/Desktop/HWP/HWP
 /home/lorenz/Desktop/HWP/HWPRobot/src/cfg/io/adc/adc_cfg.h:
 
 /usr/lib/avr/include/avr/interrupt.h:
+
+/home/lorenz/Desktop/HWP/HWPRobot/lib/tools/powerSaver.h:
 
 /usr/lib/avr/include/avr/iom1280.h:
 

@@ -1,8 +1,11 @@
 #include "bumper.h"
 #include <avr/io.h>
+#include <avr/interrupt.h>
+#include <tools/variablesAccess.h>
+#include <stdint.h>
 
 static volatile uint8_t contacts=0;
-static volatile bitset8_t bumpers=0;
+static volatile bitset8_t bumpers;
 
 void bumper_init() {
     DDRD &= ~((1 << PD0) | (1 << PD1));     //set PD0 and PD1 as inputs

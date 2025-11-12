@@ -12,12 +12,6 @@ cfg/io/adc/adc_cfg.h
 avr/io.h
 -
 
-/home/lorenz/Desktop/HWP/HWPRobot/lib/io/uart/uart_isr.S
-cfg/io/uart/uart_cfg.h
--
-avr/io.h
--
-
 /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/timeTask/GPIOR0Defs.h
 
 /home/lorenz/Desktop/HWP/HWPRobot/lib/tools/timeTask/timeTask_isr.S
@@ -29,6 +23,4 @@ avr/io.h
 -
 
 /home/lorenz/Desktop/HWP/HWPRobot/src/cfg/io/adc/adc_cfg.h
-
-/home/lorenz/Desktop/HWP/HWPRobot/src/cfg/io/uart/uart_cfg.h
 

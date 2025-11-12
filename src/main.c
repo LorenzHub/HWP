@@ -61,23 +61,34 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
     UserCommand_t* cmd = (UserCommand_t*) packet;
     switch (cmd->id) {
     case 0: // command ID 0: stop motors
-        Motor_stopAll();
+        setState(IDLE); 
         break;
     case 1: // command ID 1: turn on spot
-        Motor_setPWM(3000, -3000);
+        setState(Turn_On_Spot);
         break;
     case 2: // command ID 2: drive forwards
-        Motor_setPWM(3000, 3000);
+        setState(Drive_Forward);
         break;
     case 3: // command ID 3: drive forwards for 5 seconds, then stop
         setState(Drive_Forward_5sec);
         break;
-    case 4: { //command ID 4: send Data to remoteDataProcessing
-        uint8_t infraredValue = ADC_getFilteredValue(3);
-        communication_writePacket(CH_OUT_RDP, (uint8_t*)&infraredValue, sizeof(infraredValue));
+    case 4: { //command ID 4: read all infrared sensors
+        uint16_t ir1 = ADC_getFilteredValue(0);  // right front
+        uint16_t ir2 = ADC_getFilteredValue(1);  // right back
+        uint16_t ir3 = ADC_getFilteredValue(2);  // front
+        uint16_t ir4 = ADC_getFilteredValue(3);  // left front
+        uint16_t ir5 = ADC_getFilteredValue(4);  // left back
+        
+        communication_log(LEVEL_INFO, "IR1(RF): %" PRIu16 " IR2(RB): %" PRIu16 " IR3(F): %" PRIu16 " IR4(LF): %" PRIu16 " IR5(LB): %" PRIu16,
+                         ir1, ir2, ir3, ir4, ir5);
         break;
     }
     case 5: {
+        uint16_t encoderR = encoder_getCountR();
+        uint16_t encoderL = encoder_getCountL();
+        communication_log(LEVEL_INFO, "Encoder R: %" PRIu16 " Encoder L: %" PRIu16,
+                         encoderR, encoderL);
+        break;
         
     }
     }
@@ -110,6 +121,7 @@ static void init(void) {
 
     Motor_init();
     timeTask_init();
+	ADC_init(true);
 
     bumper_init();
     encoder_init();
