@@ -53,6 +53,21 @@ if (Test-Path "src\statemachine.c") {
     $C_SOURCES += "src\statemachine.c"
 }
 
+# Prüfe ob encoder.c existiert und füge es hinzu
+if (Test-Path "src\encoder.c") {
+    $C_SOURCES += "src\encoder.c"
+}
+
+# Prüfe ob bumper.c existiert und füge es hinzu
+if (Test-Path "src\bumper.c") {
+    $C_SOURCES += "src\bumper.c"
+}
+
+# Prüfe ob calibration.c existiert und füge es hinzu
+if (Test-Path "src\calibration.c") {
+    $C_SOURCES += "src\calibration.c"
+}
+
 # Alle Assembler-Quelldateien
 $ASM_SOURCES = @(
     "lib\io\adc\adc_isr.S",

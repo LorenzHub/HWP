@@ -16,6 +16,7 @@
 #include <stdint.h>
 
 #include "statemachine.h"
+#include "calibration.h"
 #include "io/adc/adc.h"
 
 #include "bumper.h"
@@ -46,9 +47,15 @@ static void commDebug(__attribute__((unused)) const uint8_t* packet, __attribute
 static void commDriveCommand(const uint8_t* packet, __attribute__((unused)) const uint16_t size) {
 }
 
+// Statische Variable für eingegebene Distanz aus HWPCS
+static float userInputDistance_mm = 0.0f;
+
 // callback function for communication channel CH_IN_ROBOT_PARAMS (Scene View in HWPCS)
 static void commRobotParameters(const uint8_t* packet, __attribute__((unused)) const uint16_t size) {
-    // handle robot parameters
+    RobotParameters_t* params = (RobotParameters_t*) packet;
+    // Speichere user1 als Distanz in mm
+    userInputDistance_mm = params->user1;
+    communication_log(LEVEL_INFO, "Distanz aus HWPCS empfangen: %.1f mm", userInputDistance_mm);
 }
 
 // callback function for communication channel CH_IN_POSE (Scene View in HWPCS)
@@ -84,12 +91,59 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         break;
     }
     case 5: {
-        uint16_t encoderR = encoder_getCountR();
-        uint16_t encoderL = encoder_getCountL();
-        communication_log(LEVEL_INFO, "Encoder R: %" PRIu16 " Encoder L: %" PRIu16,
+        int16_t encoderR = encoder_getCountR();
+        int16_t encoderL = encoder_getCountL();
+        communication_log(LEVEL_INFO, "Encoder R: %" PRId16 " Encoder L: %" PRId16,
                          encoderR, encoderL);
         break;
         
+    }
+    case 6: { // command ID 6: Kalibrierungsfahrt - fährt 1000 Encoder-Ticks
+        setState(Calibrate_Distance);
+        communication_log(LEVEL_INFO, "Kalibrierung gestartet: Fahre 1000 Ticks...");
+        break;
+    }
+    case 7: { // command ID 7: Fahre 50 mm (5 cm) vorwärts
+        statemachine_setTargetDistance(50);
+        statemachine_setTargetPWM(4000);
+        setState(Drive_Forward_Distance);
+        communication_log(LEVEL_INFO, "Fahre 50 mm (5 cm) vorwärts mit PWM 4000...");
+        break;
+    }
+    case 8: { // command ID 8: Fahre 100 mm (10 cm) vorwärts
+        statemachine_setTargetDistance(100);
+        statemachine_setTargetPWM(4000);
+        setState(Drive_Forward_Distance);
+        communication_log(LEVEL_INFO, "Fahre 100 mm (10 cm) vorwärts mit PWM 4000...");
+        break;
+    }
+    case 9: { // command ID 9: Fahre 5000 ticks vorwärts
+        statemachine_setTargetTicks(2048);
+        statemachine_setTargetPWM(4000);
+        setState(Drive_Forward_Ticks);
+        communication_log(LEVEL_INFO, "Fahre 5000 ticks vorwärts mit PWM 4000...");
+        break;
+    }
+    case 10: { // command ID 10: Fahre 1000mm (100 cm) vorwärts
+        statemachine_setTargetDistance(1000);
+        statemachine_setTargetPWM(4000);
+        setState(Drive_Forward_Distance);
+        communication_log(LEVEL_INFO, "Fahre 1000mm (100 cm) vorwärts mit PWM 4000...");
+        break;
+    }
+    case 12: { // command ID 12: Drehe 90° links auf der Stelle
+        statemachine_setTargetAngle(86);
+        statemachine_setTargetPWM(4000);
+        setState(Turn_On_Spot_Degrees);
+        communication_log(LEVEL_INFO, "Drehe 90° links auf der Stelle mit PWM 4000...");
+        break;
+    }
+    case 13: { // command ID 13: Drehe 180° auf der Stelle
+        statemachine_setTargetAngle(172);
+        statemachine_setTargetPWM(4000);
+        setState(Turn_On_Spot_Degrees);
+        communication_log(LEVEL_INFO, "Drehe 180° auf der Stelle mit PWM 4000...");
+        break;
     }
     }
 }
@@ -125,6 +179,9 @@ static void init(void) {
 
     bumper_init();
     encoder_init();
+    
+    // Lade gespeicherte PWM-Kalibrierungswerte aus EEPROM
+    calibration_init();
 
     // global interrupt enable
     sei();
