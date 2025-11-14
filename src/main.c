@@ -75,7 +75,8 @@ static void commRobotParameters(const uint8_t* packet, __attribute__((unused)) c
 
 // callback function for communication channel CH_IN_POSE (Scene View in HWPCS)
 static void commPose(const uint8_t* packet, __attribute__((unused)) const uint16_t size) {
-    // handle pose update
+    Pose_t* aprilTagPose = (Pose_t*)packet;
+    position_setAprilTagPose(aprilTagPose);
 }
 
 // callback function for communication channel CH_IN_USER_COMMAND (User Command View in HWPCS)
