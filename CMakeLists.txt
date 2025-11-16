@@ -148,7 +148,10 @@ add_avr_executable(HWPRobot
 		src/calibration.h
 		src/calibration.c
 		src/calcPathCommand.h
-		src/calcPathCommand.c)
+		src/calcPathCommand.c
+		src/labyrinth.h
+		src/labyrinth.c
+	)
 
 ##########################################################################
 # include search paths

@@ -6,6 +6,8 @@
 #include <communication/communication.h>
 #include <inttypes.h>
 #include "calcPathCommand.h"
+#include "labyrinth.h"
+#include "position.h"
 
 /* Define the current state here (single-definition) */
 state currentState = IDLE;
@@ -53,7 +55,15 @@ void stateMachine() {
         case Drive_Path_Command:
             drive_Path_Command();
             break;
+        case ExploreMaze:
+            exploreMaze_init();
+            break;
     }
+}
+
+void exploreMaze_init(void) {
+    setLabyrinthPose(*position_getCurrentPose());
+    exploreMaze();
 }
 
 void drive_Forward_1000ticks() {

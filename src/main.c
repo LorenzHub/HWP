@@ -25,6 +25,7 @@
 #include "position.h"
 
 #include "calcPathCommand.h"
+#include "labyrinth.h"
 
 /*
  *******************************************************************************
@@ -227,6 +228,11 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         getPose.aprilTagType = APRIL_TAG_MAIN;
         communication_writePacket(CH_OUT_GET_POSE, (uint8_t*)&getPose, sizeof(GetPose_t));
         communication_log(LEVEL_INFO, "Pose-Anfrage an HWPCS gesendet");
+        break;
+    }
+    case 16: {
+        setState(ExploreMaze);
+        communication_log(LEVEL_INFO, "Starte Labyrinth-Erkundung");
         break;
     }
     }

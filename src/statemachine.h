@@ -14,7 +14,8 @@ typedef enum {
     Drive_Forward_Distance,
     Drive_Forward_Ticks,
     Turn_On_Spot_Degrees,
-    Drive_Path_Command
+    Drive_Path_Command, 
+    ExploreMaze
 } state;
 
 /* currentState is defined in statemachine.c to avoid multiple definitions
@@ -22,6 +23,7 @@ typedef enum {
 extern state currentState;
 
 void setState(state newState);
+void exploreMaze_init(void);
 
 void drive_Forward_1000ticks();
 void drive_Forward_5sec();
