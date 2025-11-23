@@ -34,5 +34,6 @@ void statemachine_setTargetTicks(int16_t targetTicks);
 void statemachine_setTargetPWM(int16_t pwm);
 void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm);
 void statemachine_setTargetAngle(int16_t angle_degrees);
+void drive_Forward_distance_mm_then_exlore();
 
 #endif /* STATEMACHINE_H_ */

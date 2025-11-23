@@ -53,7 +53,7 @@
  *  For implications of the filter and conversion timing, please see
  *  lib/io/adc/adc.h
  */
-#define ADC_FILTER_SIZE 16
+#define ADC_FILTER_SIZE 1
 
 
 /**

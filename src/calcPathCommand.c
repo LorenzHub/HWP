@@ -5,6 +5,7 @@
 #include <inttypes.h>
 
 //check axleWidth, kAngular, forwardVelocity and conversion to PWM
+//implement poseUpdate via Apriltracking data
 
 #define axleWidth 166.0f 
 
@@ -22,11 +23,11 @@ while (angleDiff > M_PI) angleDiff -= 2.0f * M_PI;
 while (angleDiff < -M_PI) angleDiff += 2.0f * M_PI;
 
 // angular velocity
-float kAngular = 1.0f; 
+float kAngular = 2.0f; 
 float angularVelocity = kAngular * angleDiff;
 
 // Constant forward velocity
-float forwardVelocity = 85.0f; 
+float forwardVelocity = 65.0f; 
 
 // If the angle difference is very small, go straight
 if (fabsf(angleDiff) < 0.1f) {

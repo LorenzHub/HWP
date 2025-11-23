@@ -395,11 +395,11 @@ int main(void) {
                     calculateDriveCommand(currentPose, &pathFollower_status->lookahead);
                 }
                 else{
-                Motor_stopAll();  
+                setState(IDLE);
                 pathFollower_command(FOLLOWER_CMD_RESET);
                 }
+                sendPathFollowerStatus(pathFollower_status);
             }
-            sendPathFollowerStatus(pathFollower_status);
         }
     }
 

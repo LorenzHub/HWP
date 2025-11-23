@@ -2,186 +2,221 @@
 #include <math.h>
 #include <communication/communication.h>
 #include <inttypes.h>
-#include <stdbool.h>
+#include "io/adc/adc.h"
+#include <time.h>
 
 /*exploreMaze <-> Statemachine*/
+//where call setLabyrinthPose()
+
+//implement DriveDirection!
 
 LabyrinthPose_t labyrinthPose = {4,4,1};
-
 Cell maze[7][7]; 
+static uint8_t fromDirection = 4; //0=NORTH,1=EAST,2=SOUTH,3=WEST,4=initial
+static Direction_t nextDirection = DIRECTION_NORTH;
 
-// Hilfsfunktion: Prüfe ob eine Position innerhalb des Labyrinths liegt
-static bool isValidPosition(uint8_t x, uint8_t y) {
-    return (x < 7) && (y < 7);
+void exploreMaze() {
+
+    //Initialization
+    static uint8_t initialized = 0;
+    if(!initialized){
+        srand(time(NULL));  // intialize random generator
+        for(uint8_t i=0;i<7;i++){
+            for(uint8_t j=0;j<7;j++){
+                maze[i][j].north=true; maze[i][j].south=true; maze[i][j].east=true; maze[i][j].west=true;
+                maze[i][j].dirNorth=0; maze[i][j].dirSouth=0; maze[i][j].dirEast=0; maze[i][j].dirWest=0;
+            }
+        }
+        initialized=1;
+    }
+
+    if(isPlace()){
+        choosePlaceDirection();
+    }
+
+    else{
+        chooseWayDirection();
+    }
+
+    fromDirection = nextDirection;
+
+    DriveDirection(nextDirection);
 }
 
-// Hilfsfunktion: Gebe Richtung als String aus
-static const char* directionToString(uint8_t dir) {
-    switch(dir) {
-        case DIRECTION_NORTH: return "NORTH";
-        case DIRECTION_EAST: return "EAST";
-        case DIRECTION_SOUTH: return "SOUTH";
-        case DIRECTION_WEST: return "WEST";
-        default: return "UNKNOWN";
+void checkWalls(uint8_t* availableDirections) {
+    *availableDirections = 0;
+    if(ADC_getFilteredValue(2) < 250) { //front
+        *availableDirections += 1;    
+        setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_NORTH));
+    }
+    if(ADC_getFilteredValue(0) < 250) { //right front
+        *availableDirections += 1;
+        setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_EAST));
+    }
+    if(ADC_getFilteredValue(3) < 250) { //left front
+        *availableDirections += 1;
+        setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_WEST));
     }
 }
 
-// Hilfsfunktion: Gebe nächste Zelle in einer Richtung zurück
-static bool getNextCell(uint8_t x, uint8_t y, uint8_t direction, uint8_t* nextX, uint8_t* nextY) {
-    switch(direction) {
+bool isPlace(){
+    uint8_t availableDirectionsCounter;
+    checkWalls(&availableDirectionsCounter);
+    return (availableDirectionsCounter >= 2);
+}
+
+Direction_t choosePlaceDirection(){
+    //Increment fromDirection counter
+    *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], fromDirection) += 1;
+
+    //Place is unknown    
+    if (maze[labyrinthPose.x][labyrinthPose.y].dirNorth == 0 && maze[labyrinthPose.x][labyrinthPose.y].dirSouth == 0 &&
+        maze[labyrinthPose.x][labyrinthPose.y].dirEast == 0 && maze[labyrinthPose.x][labyrinthPose.y].dirWest == 0){
+        //choose random direction, but not backwards
+        do{
+            nextDirection = (Direction_t)(rand() % 4);
+        }while(fromDirection == nextDirection || hasWall(nextDirection));
+        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], nextDirection) += 1; //increment chosen direction counter
+        return nextDirection;
+    }
+    
+    //Place is known but fromDir is unknown
+    else if (*dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], fromDirection) == 0){
+        //turn around
+        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], (Direction_t)((fromDirection + 2) % 4)) += 1; //increment chosen direction counter
+        return nextDirection = (Direction_t)((fromDirection + 2) % 4);
+    }
+
+    else {
+        //choose least visited direction, but not backwards
+        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], leastVisitedDirection()) += 1; //increment chosen direction counter
+        return leastVisitedDirection();
+    }
+}
+
+Direction_t chooseWayDirection(){
+    Direction_t front = getCardinalDirectionfromLookingDirection(DIRECTION_NORTH);
+    Direction_t left = getCardinalDirectionfromLookingDirection(DIRECTION_EAST);
+    Direction_t right = getCardinalDirectionfromLookingDirection(DIRECTION_WEST);
+
+    if(hasWall(front) && hasWall(left) && hasWall(right)){ //Dead End
+        //turn around
+        return (Direction_t)((fromDirection + 2) % 4); 
+    }
+    else{
+        return leastVisitedDirection();
+    }
+}
+
+static uint8_t* dirCountPtr(Cell *c, uint8_t dir) {
+    if (c == NULL) return NULL;
+    switch (dir) {
+        case 0: return &c->dirNorth; /* NORTH */
+        case 1: return &c->dirEast;  /* EAST  */
+        case 2: return &c->dirSouth; /* SOUTH */
+        case 3: return &c->dirWest;  /* WEST  */
+        default: return NULL;        /* should not happen */
+    }
+}
+
+Direction_t getCardinalDirectionfromLookingDirection(Direction_t dirLooking) {
+    Direction_t dirCardinal;
+    switch (labyrinthPose.cardinalDirection) {
         case DIRECTION_NORTH:
-            if (y > 0) { *nextX = x; *nextY = y - 1; return true; }
-            break;
-        case DIRECTION_SOUTH:
-            if (y < 6) { *nextX = x; *nextY = y + 1; return true; }
+            dirCardinal = dirLooking;
             break;
         case DIRECTION_EAST:
-            if (x < 6) { *nextX = x + 1; *nextY = y; return true; }
+            dirCardinal = (Direction_t)((dirLooking + 1) % 4);
+            break;
+        case DIRECTION_SOUTH:
+            dirCardinal = (Direction_t)((dirLooking + 2) % 4);
             break;
         case DIRECTION_WEST:
-            if (x > 0) { *nextX = x - 1; *nextY = y; return true; }
+            dirCardinal = (Direction_t)((dirLooking + 3) % 4);
+            break;
+        default:
+            dirCardinal = dirLooking; // should not happen
             break;
     }
-    return false;
+    return dirCardinal;
 }
 
-// Hilfsfunktion: Gebe direkt entgegengesetzte Richtung zurück
-static uint8_t oppositeDirection(uint8_t direction) {
-    switch(direction) {
-        case DIRECTION_NORTH: return DIRECTION_SOUTH;
-        case DIRECTION_SOUTH: return DIRECTION_NORTH;
-        case DIRECTION_EAST: return DIRECTION_WEST;
-        case DIRECTION_WEST: return DIRECTION_EAST;
-        default: return direction;
-    }
-}
-
-// Hilfsfunktion: Prüfe ob Wand in einer Richtung existiert
-static bool hasWall(uint8_t x, uint8_t y, uint8_t direction) {
-    if (!isValidPosition(x, y)) return true;  // Außerhalb = Wand
-    
-    Cell* cell = &maze[y][x];
-    switch(direction) {
-        case DIRECTION_NORTH: return cell->north;
-        case DIRECTION_SOUTH: return cell->south;
-        case DIRECTION_EAST: return cell->east;
-        case DIRECTION_WEST: return cell->west;
-        default: return true;
+void setNoWall(Direction_t cardinalDirection){
+    switch(cardinalDirection){
+        case DIRECTION_NORTH:
+            maze[labyrinthPose.x][labyrinthPose.y].north = false;
+            break;
+        case DIRECTION_EAST:
+            maze[labyrinthPose.x][labyrinthPose.y].east = false;
+            break;
+        case DIRECTION_SOUTH:
+            maze[labyrinthPose.x][labyrinthPose.y].south = false;
+            break;
+        case DIRECTION_WEST:
+            maze[labyrinthPose.x][labyrinthPose.y].west = false;
+            break;
+        default:
+            break;
     }
 }
 
-// Hilfsfunktion: Wähle nächste Richtung nach Trémaux-Algorithmus
-static uint8_t chooseDirecion(uint8_t x, uint8_t y, uint8_t currentDir, uint8_t fromDir) {
-    const uint8_t directions[4] = {DIRECTION_NORTH, DIRECTION_EAST, DIRECTION_SOUTH, DIRECTION_WEST};
-    
-    // Priorität 1: Nicht besuchte Wege
-    for (int i = 0; i < 4; i++) {
-        uint8_t dir = directions[i];
-        if (dir == fromDir) continue;  // Nicht zurück gehen
-        
-        if (!hasWall(x, y, dir)) {
-            uint8_t nextX, nextY;
-            if (getNextCell(x, y, dir, &nextX, &nextY)) {
-                if (maze[nextY][nextX].visited == 0) {
-                    return dir;  // Nicht besuchter Weg
-                }
-            }
-        }
+bool hasWall(Direction_t cardinalDirection){
+    switch(cardinalDirection){
+        case DIRECTION_NORTH:
+            return maze[labyrinthPose.x][labyrinthPose.y].north;
+        case DIRECTION_EAST:
+            return maze[labyrinthPose.x][labyrinthPose.y].east;
+        case DIRECTION_SOUTH:
+            return maze[labyrinthPose.x][labyrinthPose.y].south;
+        case DIRECTION_WEST:
+            return maze[labyrinthPose.x][labyrinthPose.y].west;
+        default:
+            return true;
     }
-    
-    // Priorität 2: Wege mit nur einer Markierung (visited == 1)
-    for (int i = 0; i < 4; i++) {
-        uint8_t dir = directions[i];
-        if (dir == fromDir) continue;
-        
-        if (!hasWall(x, y, dir)) {
-            uint8_t nextX, nextY;
-            if (getNextCell(x, y, dir, &nextX, &nextY)) {
-                if (maze[nextY][nextX].visited == 1) {
-                    return dir;  // Weg mit einer Markierung
-                }
-            }
-        }
-    }
-    
-    // Priorität 3: Zurück gehen (wenn nötig)
-    if (fromDir != 0) {
-        return fromDir;
-    }
-    
-    // Fallback: Beliebige offene Richtung
-    for (int i = 0; i < 4; i++) {
-        uint8_t dir = directions[i];
-        if (!hasWall(x, y, dir)) {
-            return dir;
-        }
-    }
-    
-    return currentDir;  // Gleiche Richtung halten wenn nichts verfügbar
 }
 
-void exploreMaze(void) {
-    static uint8_t initialized = 0;
-    static uint8_t x = 4, y = 4;  // Start-Position
-    static uint8_t previousX = 4, previousY = 4;
-    static uint8_t previousDir = 0;
-    
-    if (!initialized) {
-        // Initialisiere Labyrinth
-        for (uint8_t i = 0; i < 7; i++) {
-            for (uint8_t j = 0; j < 7; j++) {
-                maze[i][j].visited = 0;
-                maze[i][j].north = false;
-                maze[i][j].south = false;
-                maze[i][j].east = false;
-                maze[i][j].west = false;
-            }
+/* Returns the least visited direction, which is not fromDirection */
+Direction_t leastVisitedDirection(){
+        uint8_t min = 3; //max 
+        if(fromDirection != DIRECTION_NORTH && !hasWall(DIRECTION_NORTH)){
+            nextDirection = DIRECTION_NORTH;
+            min = maze[labyrinthPose.x][labyrinthPose.y].dirNorth;
         }
-        
-        // Starte bei Position (4, 4) mit Markierung 1
-        maze[4][4].visited = 1;
-        x = 4;
-        y = 4;
-        previousX = 4;
-        previousY = 4;
-        previousDir = 0;
-        initialized = 1;
-        
-        communication_log(LEVEL_INFO, "Labyrinth-Erkundung gestartet bei Position (%" PRIu8 ", %" PRIu8 ")", x, y);
-    }
-    
-    // Wende Trémaux-Algorithmus an
-    uint8_t currentDir = labyrinthPose.cardinalDirection;
-    uint8_t fromDir = oppositeDirection(previousDir);  // Richtung aus der wir kamen
-    
-    // Wähle nächste Richtung nach Trémaux-Regeln
-    uint8_t nextDir = chooseDirecion(x, y, currentDir, fromDir);
-    
-    // Prüfe ob Wand in gewählter Richtung
-    if (!hasWall(x, y, nextDir)) {
-        uint8_t nextX, nextY;
-        if (getNextCell(x, y, nextDir, &nextX, &nextY) && isValidPosition(nextX, nextY)) {
-            // Bewegung möglich
-            previousX = x;
-            previousY = y;
-            x = nextX;
-            y = nextY;
-            previousDir = nextDir;
-            
-            // Inkrementiere Besuchs-Zähler
-            if (maze[y][x].visited == 0) {
-                maze[y][x].visited = 1;  // Erste Markierung
-                communication_log(LEVEL_INFO, "Neue Zelle gefunden: (%" PRIu8 ", %" PRIu8 ")", x, y);
-            } else if (maze[y][x].visited == 1) {
-                maze[y][x].visited = 2;  // Zweite Markierung
-                communication_log(LEVEL_INFO, "Zelle erneut besucht (2x): (%" PRIu8 ", %" PRIu8 ")", x, y);
-            }
-            
-            communication_log(LEVEL_FINE, "Bewegung: (%" PRIu8 ", %" PRIu8 ") -> (%" PRIu8 ", %" PRIu8 ") [%s], Besuch=%d", 
-                             previousX, previousY, x, y, directionToString(nextDir), maze[y][x].visited);
+        if(maze[labyrinthPose.x][labyrinthPose.y].dirEast <= min &&
+            fromDirection != DIRECTION_EAST && !hasWall(DIRECTION_EAST)){
+            nextDirection = DIRECTION_EAST;
+            min = maze[labyrinthPose.x][labyrinthPose.y].dirEast;
         }
-    } else {
-        communication_log(LEVEL_WARNING, "Wand in Richtung %s - Alternative suchen", directionToString(nextDir));
+        if(maze[labyrinthPose.x][labyrinthPose.y].dirSouth <= min &&
+                fromDirection != DIRECTION_SOUTH && !hasWall(DIRECTION_SOUTH)){
+            nextDirection = DIRECTION_SOUTH;
+            min = maze[labyrinthPose.x][labyrinthPose.y].dirSouth;
+        }
+        if(maze[labyrinthPose.x][labyrinthPose.y].dirWest <= min &&
+            fromDirection != DIRECTION_WEST && !hasWall(DIRECTION_WEST)){
+            nextDirection = DIRECTION_WEST;
+        }
+        return nextDirection;
+}
+
+void DriveDirection(Direction_t nextDirection){
+    int8_t diff = (int8_t)nextDirection - (int8_t)labyrinthPose.cardinalDirection;
+    diff = (int8_t)((diff + 4) % 4);   // diff in 0..3
+    if (diff == 3) diff = -1;          // 3 means -1 (left)
+    // diff == 0,1,2,-1
+    switch (diff) {
+        case 0:
+            // forwards
+            break;
+        case 1:
+            // turn right 90°
+            break;
+        case -1:
+            // turn left 90°
+            break;
+        case 2:
+            // U‑Turn 180°
+            break;
     }
 }
 

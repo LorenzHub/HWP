@@ -20,7 +20,8 @@
                 "${workspaceFolder}/**",
                 "/usr/lib/avr/include",
                 "${workspaceFolder}/lib",
-                "${workspaceFolder}"
+                "${workspaceFolder}",
+                "${workspaceFolder}/src"
             ],
             "defines": [
                 "__AVR_ATmega1280__"

@@ -65,6 +65,11 @@ void exploreMaze_init(void) {
     exploreMaze();
 }
 
+void drive_Forward_distance_mm_then_exlore(uint16_t distance_mm, int16_t pwmRight){
+    drive_Forward_distance_mm(distance_mm, pwmRight);
+    if(currentState == IDLE) setState(ExploreMaze);
+}
+
 void drive_Forward_1000ticks() {
     static uint8_t initialized = 0;
     static uint8_t phase = 0;  // 0 = Soft-Start, 1 = Fahren
