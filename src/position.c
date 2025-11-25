@@ -29,7 +29,7 @@ static int16_t lastEncoderR = 0;
 static int16_t lastEncoderL = 0;
 static uint8_t initialized = 0;
 
-// Forward declaration
+// Forward declaration: getRobotParams() is defined in main.c
 const RobotParameters_t* getRobotParams(void);
 
 void position_init(const Pose_t* initialPose) {
@@ -71,7 +71,7 @@ void position_updateExpectedPose(void) {
     
     // Hole Robot-Parameter
     const RobotParameters_t* params = getRobotParams();
-    
+
     // Berechne Differenz zwischen den Rädern
     int16_t diffLR = deltaR - deltaL;
     int16_t absDiffLR = (diffLR > 0) ? diffLR : -diffLR;

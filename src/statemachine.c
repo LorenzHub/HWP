@@ -53,21 +53,32 @@ void stateMachine() {
             turn_On_Spot_degrees(targetAngle_degrees, targetPWM);
             break;
         case ExploreMaze:
-            exploreMaze_init();
+            mazeExplore();
             break;
+        case drive_Forward_distance_then_explore:
+            drive_Forward_distance_mm_then_explore(targetDistance_mm, targetPWM);
+            break;
+        case turn_On_Spot_degrees_then_drive:
+            turn_degrees_then_drive(targetAngle_degrees, targetPWM);
+            break;    
         case FollowThePath:
             break;
     }
 }
 
-void exploreMaze_init(void) {
+void mazeExplore(void) {
     setLabyrinthPose(*position_getCurrentPose());
     exploreMaze();
 }
 
-void drive_Forward_distance_mm_then_exlore(uint16_t distance_mm, int16_t pwmRight){
+void drive_Forward_distance_mm_then_explore(uint16_t distance_mm, int16_t pwmRight){
     drive_Forward_distance_mm(distance_mm, pwmRight);
     if(currentState == IDLE) setState(ExploreMaze);
+}
+
+void turn_degrees_then_drive(int16_t angle_degrees, int16_t pwm){
+    turn_On_Spot_degrees(angle_degrees, pwm);
+    if(currentState == IDLE) setState(drive_Forward_distance_then_explore);
 }
 
 void drive_Forward_1000ticks() {
@@ -659,9 +670,9 @@ void statemachine_setTargetAngle(int16_t angle_degrees) {
     targetAngle_degrees = angle_degrees;
 }
 
-// Drehe den Roboter um einen bestimmten Winkel auf der Stelle
-// angle_degrees: Winkel in Grad (positiv = links drehen, negativ = rechts drehen)
-// pwm: PWM-Wert für beide Motoren (absolut)
+/*Drehe den Roboter um einen bestimmten Winkel auf der Stelle
+  angle_degrees: Winkel in Grad (positiv = rechts drehen, negativ = links drehen)
+  pwm: PWM-Wert für beide Motoren (absolut)*/
 void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm) {
     static uint8_t initialized = 0;
     static int16_t startEncoderR = 0;

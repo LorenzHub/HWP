@@ -344,6 +344,5 @@ void pathFollower_setCallback(const PathFollowerCallback_t callback);
  */
 void pathFollower_removeCallback(void);
 
-void sendPathFollowerStatus(PathFollowerStatus_t* pathFollower_status);
 
 #endif /* PATHFOLLOWER_H_ */

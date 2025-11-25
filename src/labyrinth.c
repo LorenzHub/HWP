@@ -4,29 +4,31 @@
 #include <inttypes.h>
 #include "io/adc/adc.h"
 #include <time.h>
+#include "statemachine.h"
 
-/*exploreMaze <-> Statemachine*/
-//where call setLabyrinthPose()
+//initialize fromDirection with startCardinalDirection(to ensure that turn around in chooseWayDirection works)
+//also in resetMaze()
+//and also nextDirection
+//and in labyrintPose.cardinalDirection
+//has to start NORTH because of updatePose
 
-//implement DriveDirection!
+// Forward declaration of helper function
+static uint8_t* dirCountPtr(Cell *c, uint8_t dir);
 
-LabyrinthPose_t labyrinthPose = {4,4,1};
+LabyrinthPose_t labyrinthPose = {4,4,0}; 
 Cell maze[7][7]; 
-static uint8_t fromDirection = 4; //0=NORTH,1=EAST,2=SOUTH,3=WEST,4=initial
-static Direction_t nextDirection = DIRECTION_NORTH;
+static uint8_t fromDirection = 0; //0=NORTH,1=EAST,2=SOUTH,3=WEST,initial=startCardinalDirection!
+static Direction_t nextDirection = DIRECTION_NORTH; //initialize nextDirection with startCardinalDirection!
 
 void exploreMaze() {
-
+    
     //Initialization
     static uint8_t initialized = 0;
     if(!initialized){
         srand(time(NULL));  // intialize random generator
-        for(uint8_t i=0;i<7;i++){
-            for(uint8_t j=0;j<7;j++){
-                maze[i][j].north=true; maze[i][j].south=true; maze[i][j].east=true; maze[i][j].west=true;
-                maze[i][j].dirNorth=0; maze[i][j].dirSouth=0; maze[i][j].dirEast=0; maze[i][j].dirWest=0;
-            }
-        }
+        resetMaze();
+        statemachine_setTargetDistance(257); //Cell size 256.9mm with wall
+        statemachine_setTargetPWM(5500);
         initialized=1;
     }
 
@@ -43,6 +45,20 @@ void exploreMaze() {
     DriveDirection(nextDirection);
 }
 
+void resetMaze(){
+    for(uint8_t i=0;i<7;i++){
+        for(uint8_t j=0;j<7;j++){
+            maze[i][j].north=true; maze[i][j].south=true; maze[i][j].east=true; maze[i][j].west=true;
+            maze[i][j].dirNorth=0; maze[i][j].dirSouth=0; maze[i][j].dirEast=0; maze[i][j].dirWest=0;
+        }
+    }
+    labyrinthPose.x = 4;
+    labyrinthPose.y = 4;
+    labyrinthPose.cardinalDirection = DIRECTION_NORTH;
+    nextDirection = DIRECTION_NORTH;
+    fromDirection = 0; //initialize fromDirection with startCardinalDirection(to ensure that turn around in chooseWayDirection works)
+}
+
 void checkWalls(uint8_t* availableDirections) {
     *availableDirections = 0;
     if(ADC_getFilteredValue(2) < 250) { //front
@@ -57,6 +73,8 @@ void checkWalls(uint8_t* availableDirections) {
         *availableDirections += 1;
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_WEST));
     }
+    communication_log(LEVEL_INFO, "Walls checked: %" PRIu8 " directions available (IR: front=%u, right=%u, left=%u)", 
+                     *availableDirections, ADC_getFilteredValue(2), ADC_getFilteredValue(0), ADC_getFilteredValue(3));
 }
 
 bool isPlace(){
@@ -77,6 +95,8 @@ Direction_t choosePlaceDirection(){
             nextDirection = (Direction_t)(rand() % 4);
         }while(fromDirection == nextDirection || hasWall(nextDirection));
         *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], nextDirection) += 1; //increment chosen direction counter
+        communication_log(LEVEL_INFO, "Place (unknown): at (%" PRIu8 ",%" PRIu8 ") choose random dir %d", 
+                         labyrinthPose.x, labyrinthPose.y, nextDirection);
         return nextDirection;
     }
     
@@ -84,27 +104,35 @@ Direction_t choosePlaceDirection(){
     else if (*dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], fromDirection) == 0){
         //turn around
         *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], (Direction_t)((fromDirection + 2) % 4)) += 1; //increment chosen direction counter
+        communication_log(LEVEL_INFO, "Place (known): at (%" PRIu8 ",%" PRIu8 ") turn around (dir %d)", 
+                         labyrinthPose.x, labyrinthPose.y, (fromDirection + 2) % 4);
         return nextDirection = (Direction_t)((fromDirection + 2) % 4);
     }
 
     else {
         //choose least visited direction, but not backwards
-        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], leastVisitedDirection()) += 1; //increment chosen direction counter
-        return leastVisitedDirection();
+        Direction_t leastDir = leastVisitedDirection();
+        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], leastDir) += 1; //increment chosen direction counter
+        communication_log(LEVEL_INFO, "Place (known): at (%" PRIu8 ",%" PRIu8 ") choose least visited dir %d", 
+                         labyrinthPose.x, labyrinthPose.y, leastDir);
+        return leastDir;
     }
 }
 
 Direction_t chooseWayDirection(){
-    Direction_t front = getCardinalDirectionfromLookingDirection(DIRECTION_NORTH);
-    Direction_t left = getCardinalDirectionfromLookingDirection(DIRECTION_EAST);
-    Direction_t right = getCardinalDirectionfromLookingDirection(DIRECTION_WEST);
 
-    if(hasWall(front) && hasWall(left) && hasWall(right)){ //Dead End
+    if(hasWall(getCardinalDirectionfromLookingDirection(DIRECTION_NORTH)) && hasWall(getCardinalDirectionfromLookingDirection(DIRECTION_EAST)) 
+    && hasWall(getCardinalDirectionfromLookingDirection(DIRECTION_WEST))){ //Dead End
         //turn around
+        communication_log(LEVEL_INFO, "Dead end at (%" PRIu8 ",%" PRIu8 ") - turning around", 
+                         labyrinthPose.x, labyrinthPose.y);
         return (Direction_t)((fromDirection + 2) % 4); 
     }
     else{
-        return leastVisitedDirection();
+        Direction_t nextDir = leastVisitedDirection();
+        communication_log(LEVEL_INFO, "Way: at (%" PRIu8 ",%" PRIu8 ") choose dir %d", 
+                         labyrinthPose.x, labyrinthPose.y, nextDir);
+        return nextDir;
     }
 }
 
@@ -182,7 +210,7 @@ Direction_t leastVisitedDirection(){
             nextDirection = DIRECTION_NORTH;
             min = maze[labyrinthPose.x][labyrinthPose.y].dirNorth;
         }
-        if(maze[labyrinthPose.x][labyrinthPose.y].dirEast <= min &&
+        if(maze[labyrinthPose.x][labyrinthPose.y].dirEast <= min && //smaller equal min because of !=fromDir
             fromDirection != DIRECTION_EAST && !hasWall(DIRECTION_EAST)){
             nextDirection = DIRECTION_EAST;
             min = maze[labyrinthPose.x][labyrinthPose.y].dirEast;
@@ -204,18 +232,32 @@ void DriveDirection(Direction_t nextDirection){
     diff = (int8_t)((diff + 4) % 4);   // diff in 0..3
     if (diff == 3) diff = -1;          // 3 means -1 (left)
     // diff == 0,1,2,-1
+    
+    const char* dirNames[] = {"NORTH", "EAST", "SOUTH", "WEST"};
+    const char* moveNames[] = {"forward", "right", "u-turn", "left"};
+    const char* move = (diff == -1) ? moveNames[3] : moveNames[diff];
+    
+    communication_log(LEVEL_INFO, "Drive %s (dir %s, current %s)", move, dirNames[nextDirection], dirNames[labyrinthPose.cardinalDirection]);
+    
     switch (diff) {
         case 0:
             // forwards
+            setState(drive_Forward_distance_then_explore);
             break;
         case 1:
             // turn right 90°
+            statemachine_setTargetAngle(86); //positiv is right turn according to turn_On_Spot_degrees
+            setState(turn_On_Spot_degrees_then_drive);
             break;
         case -1:
             // turn left 90°
+            statemachine_setTargetAngle(-86);
+            setState(turn_On_Spot_degrees_then_drive);
             break;
         case 2:
             // U‑Turn 180°
+            statemachine_setTargetAngle(172);
+            setState(turn_On_Spot_degrees_then_drive);
             break;
     }
 }
@@ -232,4 +274,13 @@ void setLabyrinthPose(Pose_t pose) {
 	int idx = (int) floorf(t / (M_PI_2));
 	const Direction_t map[4] = { DIRECTION_EAST,DIRECTION_NORTH, DIRECTION_WEST, DIRECTION_SOUTH };
 	labyrinthPose.cardinalDirection = map[idx & 0x3];
+    
+    static uint8_t lastX = 255, lastY = 255;
+    if (labyrinthPose.x != lastX || labyrinthPose.y != lastY) {
+        const char* dirNames[] = {"NORTH", "EAST", "SOUTH", "WEST"};
+        communication_log(LEVEL_INFO, "Position updated: cell (%" PRIu8 ",%" PRIu8 "), facing %s", 
+                         labyrinthPose.x, labyrinthPose.y, dirNames[labyrinthPose.cardinalDirection]);
+        lastX = labyrinthPose.x;
+        lastY = labyrinthPose.y;
+    }
 }

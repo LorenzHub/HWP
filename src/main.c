@@ -169,11 +169,11 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         communication_log(LEVEL_INFO, "Fahre 5000 ticks vorwärts mit PWM 4000...");
         break;
     }
-    case 10: { // command ID 10: Fahre 1000mm (100 cm) vorwärts
-        statemachine_setTargetDistance(1000);
-        statemachine_setTargetPWM(4000);
+    case 10: { // command ID 10: Fahre eine Zelle (256.9mm) mit Wand vorwärts
+        statemachine_setTargetDistance(257);
+        statemachine_setTargetPWM(5000);
         setState(Drive_Forward_Distance);
-        communication_log(LEVEL_INFO, "Fahre 1000mm (100 cm) vorwärts mit PWM 4000...");
+        communication_log(LEVEL_INFO, "Fahre eine Zelle (257 mm) mit Wand vorwärts mit PWM 5000...");
         break;
     }
     case 12: { // command ID 12: Drehe 90° links auf der Stelle
@@ -190,7 +190,7 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         communication_log(LEVEL_INFO, "Drehe 180° auf der Stelle mit PWM 4000...");
         break;
     }
-    case 14: { // command ID 14: Synchronisiere Odometrie mit Kamera-Pose
+    /*case 14: { // command ID 14: Synchronisiere Odometrie mit Kamera-Pose
         const Pose_t* currentPose = position_getCurrentPose();
         const Pose_t* cameraPose = position_getAprilTagPose();
         uint32_t age_us = position_getLastCameraUpdateTime();
@@ -229,15 +229,19 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
             }
         }
         break;
-    }
-    case 15: { // command ID 15: Sende sofortige Pose-Anfrage an HWPCS
+    }*/
+    /*case 15: { // command ID 15: Sende sofortige Pose-Anfrage an HWPCS
         GetPose_t getPose;
         getPose.aprilTagType = APRIL_TAG_MAIN;
         communication_writePacket(CH_OUT_GET_POSE, (uint8_t*)&getPose, sizeof(GetPose_t));
         communication_log(LEVEL_INFO, "Pose-Anfrage an HWPCS gesendet");
         break;
+    }*/
+    case 14: {
+        resetMaze();
+        break;
     }
-    case 16: {
+    case 15: {
         setState(ExploreMaze);
         communication_log(LEVEL_INFO, "Starte Labyrinth-Erkundung");
         break;
@@ -398,7 +402,7 @@ int main(void) {
                 setState(IDLE);
                 pathFollower_command(FOLLOWER_CMD_RESET);
                 }
-                sendPathFollowerStatus(pathFollower_status);
+                communication_writePacket(CH_OUT_PATH_FOLLOW_STATUS, (uint8_t*)pathFollower_status, sizeof(*pathFollower_status));
             }
         }
     }

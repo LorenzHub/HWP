@@ -15,6 +15,8 @@ typedef enum {
     Drive_Forward_Ticks,
     Turn_On_Spot_Degrees,
     ExploreMaze,
+    drive_Forward_distance_then_explore,
+    turn_On_Spot_degrees_then_drive,
     FollowThePath
 } state;
 
@@ -23,7 +25,7 @@ typedef enum {
 extern state currentState;
 
 void setState(state newState);
-void exploreMaze_init(void);
+void mazeExplore(void);
 
 void drive_Forward_1000ticks();
 void drive_Forward_5sec();
@@ -34,6 +36,7 @@ void statemachine_setTargetTicks(int16_t targetTicks);
 void statemachine_setTargetPWM(int16_t pwm);
 void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm);
 void statemachine_setTargetAngle(int16_t angle_degrees);
-void drive_Forward_distance_mm_then_exlore();
+void drive_Forward_distance_mm_then_explore();
+void turn_degrees_then_drive(int16_t angle_degrees, int16_t pwm);
 
 #endif /* STATEMACHINE_H_ */

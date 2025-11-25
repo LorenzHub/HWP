@@ -5,7 +5,7 @@
 #include <communication/packetTypes.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include "packetTypes.h"
+#include "communication/packetTypes.h"
 
 typedef struct{
     uint8_t  x;
@@ -32,8 +32,6 @@ Direction_t chooseWayDirection();
 
 Direction_t getCardinalDirectionfromLookingDirection(Direction_t dirLooking);
 
-static uint8_t* dirCountPtr(Cell *c, uint8_t dir);
-
 void setNoWall(Direction_t cardinalDirection);
 
 bool hasWall(Direction_t cardinalDirection);
@@ -42,4 +40,5 @@ Direction_t leastVisitedDirection();
 
 void DriveDirection(Direction_t nextDirection);
 
+void resetMaze();
 #endif // LABYRINTH_H
