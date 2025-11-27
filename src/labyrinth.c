@@ -5,19 +5,23 @@
 #include "io/adc/adc.h"
 #include <time.h>
 #include "statemachine.h"
+#include "position.h"
+#include "tools/labyrinth/labyrinth.h"
 
-//initialize fromDirection with startCardinalDirection(to ensure that turn around in chooseWayDirection works)
+//initialize fromDirection with opposite of startCardinalDirection(to ensure that turn around in chooseWayDirection works)
 //also in resetMaze()
 //and also nextDirection
 //and in labyrintPose.cardinalDirection
-//has to start NORTH because of updatePose
+//has to start {3,3,0} because of updatePose
+
 
 // Forward declaration of helper function
 static uint8_t* dirCountPtr(Cell *c, uint8_t dir);
 
-LabyrinthPose_t labyrinthPose = {4,4,0}; 
+/*Maze is in 0...6*/
+LabyrinthPose_t labyrinthPose = {3,3,0}; 
 Cell maze[7][7]; 
-static uint8_t fromDirection = 0; //0=NORTH,1=EAST,2=SOUTH,3=WEST,initial=startCardinalDirection!
+static uint8_t fromDirection = 2; //0=NORTH,1=EAST,2=SOUTH,3=WEST,initial=oppositeDirection(startCardinalDirection)
 static Direction_t nextDirection = DIRECTION_NORTH; //initialize nextDirection with startCardinalDirection!
 
 void exploreMaze() {
@@ -27,7 +31,7 @@ void exploreMaze() {
     if(!initialized){
         srand(time(NULL));  // intialize random generator
         resetMaze();
-        statemachine_setTargetDistance(257); //Cell size 256.9mm with wall
+        statemachine_setTargetDistance(253); //Cell size 256.9mm with wall
         statemachine_setTargetPWM(5500);
         initialized=1;
     }
@@ -40,9 +44,19 @@ void exploreMaze() {
         chooseWayDirection();
     }
 
-    fromDirection = nextDirection;
+    static uint8_t init = 0;
+    //Increment fromDirection counter
+    if(init!=0)*dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], fromDirection) += 1;
+    init=1;
+    
+    //increment chosen direction counter
+    *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], (uint8_t)nextDirection) += 1; 
+
+    fromDirection = oppositDirection((uint8_t) nextDirection);
 
     DriveDirection(nextDirection);
+
+    if(hasEscaped())setState(IDLE);
 }
 
 void resetMaze(){
@@ -52,28 +66,40 @@ void resetMaze(){
             maze[i][j].dirNorth=0; maze[i][j].dirSouth=0; maze[i][j].dirEast=0; maze[i][j].dirWest=0;
         }
     }
-    labyrinthPose.x = 4;
-    labyrinthPose.y = 4;
+    labyrinthPose.x = 3;
+    labyrinthPose.y = 3;
     labyrinthPose.cardinalDirection = DIRECTION_NORTH;
     nextDirection = DIRECTION_NORTH;
-    fromDirection = 0; //initialize fromDirection with startCardinalDirection(to ensure that turn around in chooseWayDirection works)
+    fromDirection = 2; //initialize fromDirection with opposite of startCardinalDirection(to ensure that turn around in chooseWayDirection works)
+    Pose_t initialPose = {0.0f,0.0f, M_PI_2};
+    position_setPose(&initialPose);
+    labyrinth_clearAllWalls();
+}
+
+bool hasEscaped(){
+    return (labyrinthPose.x > 6 || labyrinthPose.x < 0  || labyrinthPose.y > 6|| labyrinthPose.y < 0 );
 }
 
 void checkWalls(uint8_t* availableDirections) {
+    Walls_t walls = labyrinth_getWalls(labyrinthPose.x, labyrinthPose.y); //(for communication with HWPCS)
     *availableDirections = 0;
     if(ADC_getFilteredValue(2) < 250) { //front
         *availableDirections += 1;    
+        walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_NORTH)); //set wall to no wall(for communication with HWPCS); standard is wall present
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_NORTH));
     }
     if(ADC_getFilteredValue(0) < 250) { //right front
         *availableDirections += 1;
+        walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_EAST)); //set wall to no wall(for communication with HWPCS); standard is wall present
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_EAST));
     }
     if(ADC_getFilteredValue(3) < 250) { //left front
         *availableDirections += 1;
+        walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_WEST)); //set wall to no wall(for communication with HWPCS); standard is wall present
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_WEST));
     }
-    communication_log(LEVEL_INFO, "Walls checked: %" PRIu8 " directions available (IR: front=%u, right=%u, left=%u)", 
+    labyrinth_setWalls(labyrinthPose.x, labyrinthPose.y, walls);
+    communication_log(LEVEL_INFO, "Walls checked: %" PRIu16 " directions available (IR: front=%u, right=%u, left=%u)", 
                      *availableDirections, ADC_getFilteredValue(2), ADC_getFilteredValue(0), ADC_getFilteredValue(3));
 }
 
@@ -84,8 +110,6 @@ bool isPlace(){
 }
 
 Direction_t choosePlaceDirection(){
-    //Increment fromDirection counter
-    *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], fromDirection) += 1;
 
     //Place is unknown    
     if (maze[labyrinthPose.x][labyrinthPose.y].dirNorth == 0 && maze[labyrinthPose.x][labyrinthPose.y].dirSouth == 0 &&
@@ -93,9 +117,8 @@ Direction_t choosePlaceDirection(){
         //choose random direction, but not backwards
         do{
             nextDirection = (Direction_t)(rand() % 4);
-        }while(fromDirection == nextDirection || hasWall(nextDirection));
-        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], nextDirection) += 1; //increment chosen direction counter
-        communication_log(LEVEL_INFO, "Place (unknown): at (%" PRIu8 ",%" PRIu8 ") choose random dir %d", 
+        }while(oppositDirection(fromDirection) == (uint8_t)nextDirection || hasWall(nextDirection));
+        communication_log(LEVEL_INFO, "Place (unknown): at (%" PRIu16 ",%" PRIu16 ") choose random dir %d", 
                          labyrinthPose.x, labyrinthPose.y, nextDirection);
         return nextDirection;
     }
@@ -103,19 +126,18 @@ Direction_t choosePlaceDirection(){
     //Place is known but fromDir is unknown
     else if (*dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], fromDirection) == 0){
         //turn around
-        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], (Direction_t)((fromDirection + 2) % 4)) += 1; //increment chosen direction counter
-        communication_log(LEVEL_INFO, "Place (known): at (%" PRIu8 ",%" PRIu8 ") turn around (dir %d)", 
+        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], ((fromDirection + 2) % 4)) += 1; //increment chosen direction counter
+        communication_log(LEVEL_INFO, "Place (known): at (%" PRIu16 ",%" PRIu16 ") turn around (dir %d)", 
                          labyrinthPose.x, labyrinthPose.y, (fromDirection + 2) % 4);
-        return nextDirection = (Direction_t)((fromDirection + 2) % 4);
+        return nextDirection = fromDirection;
     }
 
     else {
         //choose least visited direction, but not backwards
-        Direction_t leastDir = leastVisitedDirection();
-        *dirCountPtr(&maze[labyrinthPose.x][labyrinthPose.y], leastDir) += 1; //increment chosen direction counter
-        communication_log(LEVEL_INFO, "Place (known): at (%" PRIu8 ",%" PRIu8 ") choose least visited dir %d", 
-                         labyrinthPose.x, labyrinthPose.y, leastDir);
-        return leastDir;
+        nextDirection = leastVisitedDirection();
+        communication_log(LEVEL_INFO, "Place (known): at (%" PRIu16 ",%" PRIu16 ") choose least visited dir %d", 
+                         labyrinthPose.x, labyrinthPose.y, nextDirection);
+        return nextDirection;
     }
 }
 
@@ -124,16 +146,21 @@ Direction_t chooseWayDirection(){
     if(hasWall(getCardinalDirectionfromLookingDirection(DIRECTION_NORTH)) && hasWall(getCardinalDirectionfromLookingDirection(DIRECTION_EAST)) 
     && hasWall(getCardinalDirectionfromLookingDirection(DIRECTION_WEST))){ //Dead End
         //turn around
-        communication_log(LEVEL_INFO, "Dead end at (%" PRIu8 ",%" PRIu8 ") - turning around", 
+        communication_log(LEVEL_INFO, "Dead end at (%" PRIu16 ",%" PRIu16 ") - turning around", 
                          labyrinthPose.x, labyrinthPose.y);
-        return (Direction_t)((fromDirection + 2) % 4); 
+        nextDirection   = (Direction_t) fromDirection;                 
+        return nextDirection; 
     }
     else{
-        Direction_t nextDir = leastVisitedDirection();
-        communication_log(LEVEL_INFO, "Way: at (%" PRIu8 ",%" PRIu8 ") choose dir %d", 
-                         labyrinthPose.x, labyrinthPose.y, nextDir);
-        return nextDir;
+        nextDirection = leastVisitedDirection();
+        communication_log(LEVEL_INFO, "Way: at (%" PRIu16 ",%" PRIu16 ") choose dir %d", 
+                         labyrinthPose.x, labyrinthPose.y, nextDirection);                     
+        return nextDirection;
     }
+}
+
+uint8_t oppositDirection(uint8_t dir){
+    return (dir + 2) % 4;
 }
 
 static uint8_t* dirCountPtr(Cell *c, uint8_t dir) {
@@ -206,22 +233,22 @@ bool hasWall(Direction_t cardinalDirection){
 /* Returns the least visited direction, which is not fromDirection */
 Direction_t leastVisitedDirection(){
         uint8_t min = 3; //max 
-        if(fromDirection != DIRECTION_NORTH && !hasWall(DIRECTION_NORTH)){
+        if(fromDirection != (uint8_t)DIRECTION_NORTH && !hasWall(DIRECTION_NORTH)){
             nextDirection = DIRECTION_NORTH;
             min = maze[labyrinthPose.x][labyrinthPose.y].dirNorth;
         }
         if(maze[labyrinthPose.x][labyrinthPose.y].dirEast <= min && //smaller equal min because of !=fromDir
-            fromDirection != DIRECTION_EAST && !hasWall(DIRECTION_EAST)){
+            fromDirection !=(uint8_t) DIRECTION_EAST && !hasWall(DIRECTION_EAST)){
             nextDirection = DIRECTION_EAST;
             min = maze[labyrinthPose.x][labyrinthPose.y].dirEast;
         }
         if(maze[labyrinthPose.x][labyrinthPose.y].dirSouth <= min &&
-                fromDirection != DIRECTION_SOUTH && !hasWall(DIRECTION_SOUTH)){
+                fromDirection != (uint8_t)DIRECTION_SOUTH && !hasWall(DIRECTION_SOUTH)){
             nextDirection = DIRECTION_SOUTH;
             min = maze[labyrinthPose.x][labyrinthPose.y].dirSouth;
         }
         if(maze[labyrinthPose.x][labyrinthPose.y].dirWest <= min &&
-            fromDirection != DIRECTION_WEST && !hasWall(DIRECTION_WEST)){
+            fromDirection != (uint8_t)DIRECTION_WEST && !hasWall(DIRECTION_WEST)){
             nextDirection = DIRECTION_WEST;
         }
         return nextDirection;
@@ -263,8 +290,8 @@ void DriveDirection(Direction_t nextDirection){
 }
 
 void setLabyrinthPose(Pose_t pose) {
-    labyrinthPose.x = (uint8_t)(pose.x / 256.9f)+4.0f; //Cell size 256.9mm with wall
-    labyrinthPose.y = (uint8_t)(pose.y / 256.9f)+4.0f;
+    labyrinthPose.x = (uint8_t)(pose.x / 253.3f)+3.0f; //Cell size 253.3mm with wall
+    labyrinthPose.y = (uint8_t)(pose.y / 253.3f)+3.0f;
 
     float t = pose.theta + M_PI_4; //range
 	t = fmodf(t, 2.0f * M_PI);
@@ -278,7 +305,7 @@ void setLabyrinthPose(Pose_t pose) {
     static uint8_t lastX = 255, lastY = 255;
     if (labyrinthPose.x != lastX || labyrinthPose.y != lastY) {
         const char* dirNames[] = {"NORTH", "EAST", "SOUTH", "WEST"};
-        communication_log(LEVEL_INFO, "Position updated: cell (%" PRIu8 ",%" PRIu8 "), facing %s", 
+        communication_log(LEVEL_INFO, "Position updated: cell (%" PRIu16 ",%" PRIu16 "), facing %s", 
                          labyrinthPose.x, labyrinthPose.y, dirNames[labyrinthPose.cardinalDirection]);
         lastX = labyrinthPose.x;
         lastY = labyrinthPose.y;

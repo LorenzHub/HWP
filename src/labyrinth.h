@@ -22,6 +22,8 @@ void exploreMaze();
 
 void setLabyrinthPose(Pose_t pose);
 
+bool hasEscaped();
+
 void checkWalls(uint8_t* availableDirections);
 
 bool isPlace();
@@ -29,6 +31,8 @@ bool isPlace();
 Direction_t choosePlaceDirection();
 
 Direction_t chooseWayDirection();
+
+uint8_t oppositDirection(uint8_t dir);
 
 Direction_t getCardinalDirectionfromLookingDirection(Direction_t dirLooking);
 

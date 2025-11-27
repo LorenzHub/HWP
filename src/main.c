@@ -27,6 +27,8 @@
 #include "calcPathCommand.h"
 #include "labyrinth.h"
 
+#include "tools/labyrinth/labyrinth.h"
+
 /*
  *******************************************************************************
  * PRIVATE VARIABLES
@@ -258,6 +260,7 @@ static void commAdditionalPose(__attribute__((unused)) const uint8_t* packet, __
 // initialization
 static void init(void) {
     powerSaver_init(); // must be the first call!
+    labyrinth_init();
     LED_init();
     uart_init();
     communication_init();
@@ -405,6 +408,12 @@ int main(void) {
                 communication_writePacket(CH_OUT_PATH_FOLLOW_STATUS, (uint8_t*)pathFollower_status, sizeof(*pathFollower_status));
             }
         }
+
+        TIMETASK(WALL_TASK, 500) {
+			 const LabyrinthWalls_t* wallData = labyrinth_getAllWalls();
+			 communication_writePacket(CH_OUT_LABY_WALLS, (uint8_t*)wallData, sizeof(*wallData));
+		 }
+
     }
 
     return 0;

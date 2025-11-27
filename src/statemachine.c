@@ -199,6 +199,8 @@ void drive_Forward_1000ticks() {
 
 // Fahre eine bestimmte Anzahl von Encoder-Ticks vorwärts mit kontinuierlicher Korrektur
 void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
+    /* logs for this function suppressed */
+    #define communication_log(level, ...) ((void)0)
     static uint8_t initialized = 0;
     static int16_t startEncoderR = 0;
     static int16_t startEncoderL = 0;
@@ -615,6 +617,7 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
             initialized = 0;
         }
     }
+#undef communication_log
 }
 
 void drive_Forward_5sec() {
@@ -674,6 +677,8 @@ void statemachine_setTargetAngle(int16_t angle_degrees) {
   angle_degrees: Winkel in Grad (positiv = rechts drehen, negativ = links drehen)
   pwm: PWM-Wert für beide Motoren (absolut)*/
 void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm) {
+    /* logs for this function suppressed */
+    #define communication_log(level, ...) ((void)0)
     static uint8_t initialized = 0;
     static int16_t startEncoderR = 0;
     static int16_t startEncoderL = 0;
@@ -833,4 +838,5 @@ void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm) {
             }
         }
     }
+#undef communication_log
 }
