@@ -179,17 +179,17 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         break;
     }
     case 12: { // command ID 12: Drehe 90° links auf der Stelle
-        statemachine_setTargetAngle(86);
+        statemachine_setTargetAngle(82);
         statemachine_setTargetPWM(4000);
         setState(Turn_On_Spot_Degrees);
-        communication_log(LEVEL_INFO, "Drehe 90° links auf der Stelle mit PWM 4000...");
+        communication_log(LEVEL_INFO, "Drehe 90° r auf der Stelle mit PWM 4000...");
         break;
     }
     case 13: { // command ID 13: Drehe 180° auf der Stelle
-        statemachine_setTargetAngle(172);
+        statemachine_setTargetAngle(-82);
         statemachine_setTargetPWM(4000);
         setState(Turn_On_Spot_Degrees);
-        communication_log(LEVEL_INFO, "Drehe 180° auf der Stelle mit PWM 4000...");
+        communication_log(LEVEL_INFO, "Drehe 90° l auf der Stelle mit PWM 4000...");
         break;
     }
     /*case 14: { // command ID 14: Synchronisiere Odometrie mit Kamera-Pose

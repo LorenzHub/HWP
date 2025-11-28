@@ -8,6 +8,8 @@
 #include "calcPathCommand.h"
 #include "labyrinth.h"
 #include "position.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /* Define the current state here (single-definition) */
 state currentState = IDLE;
@@ -712,7 +714,8 @@ void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm) {
         // Berechne benötigte Ticks für den Winkel
         // Umfang der Drehbewegung = π × Radabstand
         // Distanz pro Rad = (π × Radabstand × Winkel) / 360°
-        float distancePerWheel_mm = (pi * wheelbase_mm * (float)angle_degrees) / 360.0f;
+int16_t absAngle= (angle_degrees > 0) ? angle_degrees : -angle_degrees;
+        float distancePerWheel_mm = (pi * wheelbase_mm * (float)absAngle ) / 360.0f;
         targetTicksValue = (int16_t)(distancePerWheel_mm / mmPerTick);
         
         // Bestimme Drehrichtung: positiv = links drehen (L vorwärts, R rückwärts)

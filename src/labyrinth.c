@@ -273,17 +273,17 @@ void DriveDirection(Direction_t nextDirection){
             break;
         case 1:
             // turn right 90°
-            statemachine_setTargetAngle(86); //positiv is right turn according to turn_On_Spot_degrees
+            statemachine_setTargetAngle(83); //positiv is right turn according to turn_On_Spot_degrees
             setState(turn_On_Spot_degrees_then_drive);
             break;
         case -1:
             // turn left 90°
-            statemachine_setTargetAngle(-86);
+            statemachine_setTargetAngle(-83);
             setState(turn_On_Spot_degrees_then_drive);
             break;
         case 2:
             // U‑Turn 180°
-            statemachine_setTargetAngle(172);
+            statemachine_setTargetAngle(166);
             setState(turn_On_Spot_degrees_then_drive);
             break;
     }
@@ -303,11 +303,13 @@ void setLabyrinthPose(Pose_t pose) {
 	labyrinthPose.cardinalDirection = map[idx & 0x3];
     
     static uint8_t lastX = 255, lastY = 255;
-    if (labyrinthPose.x != lastX || labyrinthPose.y != lastY) {
+    //if (labyrinthPose.x != lastX || labyrinthPose.y != lastY) {
         const char* dirNames[] = {"NORTH", "EAST", "SOUTH", "WEST"};
         communication_log(LEVEL_INFO, "Position updated: cell (%" PRIu16 ",%" PRIu16 "), facing %s", 
                          labyrinthPose.x, labyrinthPose.y, dirNames[labyrinthPose.cardinalDirection]);
+        communication_log(LEVEL_INFO, "pose.x, pose.y (%" PRIu16 ",%" PRIu16 ")", 
+                         (uint8_t)pose.x, (uint8_t)pose.y);                 
         lastX = labyrinthPose.x;
         lastY = labyrinthPose.y;
-    }
+    //}
 }
