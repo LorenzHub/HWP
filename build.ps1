@@ -73,6 +73,18 @@ if (Test-Path "src\position.c") {
     $C_SOURCES += "src\position.c"
 }
 
+# Prüfe ob labyrinth.c existiert und füge es hinzu
+# Beide Dateien werden benötigt: lib\tools\labyrinth\labyrinth.c für low-level Funktionen,
+# src\labyrinth.c für high-level Exploration-Logik
+if (Test-Path "src\labyrinth.c") {
+    $C_SOURCES += "src\labyrinth.c"
+}
+
+# Prüfe ob calcPathCommand.c existiert und füge es hinzu
+if (Test-Path "src\calcPathCommand.c") {
+    $C_SOURCES += "src\calcPathCommand.c"
+}
+
 # Alle Assembler-Quelldateien
 $ASM_SOURCES = @(
     "lib\io\adc\adc_isr.S",
@@ -116,7 +128,14 @@ $ALL_CFLAGS = $CFLAGS + $INCLUDE_FLAGS
 $OBJECT_FILES = @()
 foreach ($src in $C_SOURCES) {
     if (Test-Path $src) {
-        $obj = "$OBJ_DIR\" + [System.IO.Path]::GetFileNameWithoutExtension($src) + ".o"
+        # Spezielle Behandlung für labyrinth.c Dateien, um Namenskonflikte zu vermeiden
+        if ($src -eq "src\labyrinth.c") {
+            $obj = "$OBJ_DIR\src_labyrinth.o"
+        } elseif ($src -eq "lib\tools\labyrinth\labyrinth.c") {
+            $obj = "$OBJ_DIR\lib_labyrinth.o"
+        } else {
+            $obj = "$OBJ_DIR\" + [System.IO.Path]::GetFileNameWithoutExtension($src) + ".o"
+        }
         Write-Host "  Kompiliere: $src" -ForegroundColor Cyan
         & $AVR_GCC $ALL_CFLAGS -c $src -o $obj
         if ($LASTEXITCODE -ne 0) {

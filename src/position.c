@@ -14,10 +14,10 @@
 #define ERROR_ANGLE_THRESHOLD_RAD 0.3f           // ≈17°
 
 // Aktuelle erwartete Pose des Roboters (Odometrie)
-static Pose_t expectedPose = { 200.0f, 0.0f, M_PI_2 };
+static Pose_t expectedPose = { 0.0f, 0.0f, M_PI_2 };
 
 // Kamera-Pose (AprilTag)
-static Pose_t truePose = { 200.0f, 0.0f, M_PI_2 };
+static Pose_t truePose = { 0.0f, 0.0f, M_PI_2 };
 static timeTask_time_t lastCameraUpdate = { 0, 0 };
 static uint8_t cameraPoseValid = 0;  // Flag ob Kamera-Pose jemals empfangen wurde
 
@@ -128,6 +128,11 @@ void position_setPose(const Pose_t* newPose) {
         while (expectedPose.theta < -M_PI) {
             expectedPose.theta += 2.0f * M_PI;
         }
+        
+        // WICHTIG: Reset Encoder-Referenzwerte, damit nächste Delta-Berechnung korrekt ist
+        // Sonst werden die alten Encoder-Werte als Referenz verwendet und Deltas akkumulieren sich
+        lastEncoderR = encoder_getCountR();
+        lastEncoderL = encoder_getCountL();
     }
 }
 

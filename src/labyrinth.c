@@ -20,7 +20,6 @@ static uint8_t* dirCountPtr(Cell *c, uint8_t dir);
 
 /*Maze is in 0...6*/
 LabyrinthPose_t labyrinthPose = {3,3,0}; 
-LabyrinthPose_t currentPose = {0,0,0};
 Cell maze[7][7]; 
 static uint8_t fromDirection = 2; //0=NORTH,1=EAST,2=SOUTH,3=WEST,initial=oppositeDirection(startCardinalDirection)
 static Direction_t nextDirection = DIRECTION_NORTH; //initialize nextDirection with startCardinalDirection!
@@ -67,8 +66,6 @@ void resetMaze(){
             maze[i][j].dirNorth=0; maze[i][j].dirSouth=0; maze[i][j].dirEast=0; maze[i][j].dirWest=0;
         }
     }
-    currentPose.x = 0;
-currentPose.y = 0;
     labyrinthPose.x = 3;
     labyrinthPose.y = 3;
     labyrinthPose.cardinalDirection = DIRECTION_NORTH;
@@ -86,17 +83,17 @@ bool hasEscaped(){
 void checkWalls(uint8_t* availableDirections) {
     Walls_t walls = labyrinth_getWalls(labyrinthPose.x, labyrinthPose.y); //(for communication with HWPCS)
     *availableDirections = 0;
-    if(ADC_getFilteredValue(2) < 250) { //front
+    if(ADC_getFilteredValue(2) < 200) { //front
         *availableDirections += 1;    
         walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_NORTH)); //set wall to no wall(for communication with HWPCS); standard is wall present
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_NORTH));
     }
-    if(ADC_getFilteredValue(0) < 250) { //right front
+    if(ADC_getFilteredValue(0) < 200) { //right front
         *availableDirections += 1;
         walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_EAST)); //set wall to no wall(for communication with HWPCS); standard is wall present
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_EAST));
     }
-    if(ADC_getFilteredValue(3) < 250) { //left front
+    if(ADC_getFilteredValue(3) < 200) { //left front
         *availableDirections += 1;
         walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_WEST)); //set wall to no wall(for communication with HWPCS); standard is wall present
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_WEST));
@@ -295,35 +292,41 @@ void DriveDirection(Direction_t nextDirection){
     }
 }
 
-void setLabyrinthPose(Pose_t poseDelta) {
-    
-
-
-    currentPose.x  = currentPose.x + (int16_t)poseDelta.x;
-    currentPose.y = currentPose.y + (int16_t)poseDelta.y;
-    labyrinthPose.x = (int16_t)floorf(currentPose.x / 253.3f + 3.0f); //Cell size 253.3mm with wall
-    labyrinthPose.y = (int16_t)floorf(currentPose.y / 253.3f + 3.0f);
-
-    /*
-    float t = poseDelta.theta + M_PI_4; //range
-	t = fmodf(t, 2.0f * M_PI);
-	if (t < 0.0f)
-		t += 2.0f * M_PI;
-
-	int idx = (int) floorf(t / (M_PI_2));
-	const Direction_t map[4] = { DIRECTION_EAST,DIRECTION_NORTH, DIRECTION_WEST, DIRECTION_SOUTH };
-	labyrinthPose.cardinalDirection = map[idx & 0x3];*/
+// Manuelle Positionsaktualisierung nach Vorwärtsbewegung (eine Zelle)
+void updateLabyrinthPosition(void) {
+    switch (labyrinthPose.cardinalDirection) {
+        case DIRECTION_NORTH:
+            labyrinthPose.y++;
+            break;
+        case DIRECTION_EAST:
+            labyrinthPose.x++;
+            break;
+        case DIRECTION_SOUTH:
+            labyrinthPose.y--;
+            break;
+        case DIRECTION_WEST:
+            labyrinthPose.x--;
+            break;
+    }
     
     static uint8_t lastX = 255, lastY = 255;
-    //if (labyrinthPose.x != lastX || labyrinthPose.y != lastY) {
+    if (labyrinthPose.x != lastX || labyrinthPose.y != lastY) {
         const char* dirNames[] = {"NORTH", "EAST", "SOUTH", "WEST"};
         communication_log(LEVEL_INFO, "Position updated: cell (%" PRId16 ",%" PRId16 "), facing %s", 
                          labyrinthPose.x, labyrinthPose.y, dirNames[labyrinthPose.cardinalDirection]);
-        communication_log(LEVEL_INFO, "pose.x, pose.y (%" PRId16 ",%" PRId16 ")", 
-                         (int16_t)(currentPose.x), (int16_t)(currentPose.y)); 
-        communication_log(LEVEL_INFO, "delta.x, delta.y (%" PRId16 ",%" PRId16 ")", 
-                         (int16_t)(poseDelta.x), (int16_t)(poseDelta.y));                 
         lastX = labyrinthPose.x;
         lastY = labyrinthPose.y;
-    //}
+    }
+}
+
+// Alte Funktion - nur noch für Debug/Logging, nicht für Navigation
+void setLabyrinthPose(Pose_t pose) {
+    // Nur für Debug-Logging, nicht für Navigation verwendet
+    // Konvertiere Float-Werte zu Integer für Log-Ausgabe (AVR unterstützt kein Float-Format)
+    int16_t x_mm = (int16_t)(pose.x);
+    int16_t y_mm = (int16_t)(pose.y);
+    int16_t theta_mrad = (int16_t)(pose.theta * 1000.0f);  // Theta in Milliradiant
+    int16_t theta_deg = (int16_t)(pose.theta * 180.0f / M_PI);  // Theta in Grad
+    communication_log(LEVEL_INFO, "Odometrie (nur Debug): x=%" PRId16 "mm y=%" PRId16 "mm theta=%" PRId16 "° (%" PRId16 "mrad)", 
+                     x_mm, y_mm, theta_deg, theta_mrad);
 }

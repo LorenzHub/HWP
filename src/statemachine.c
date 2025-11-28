@@ -8,6 +8,7 @@
 #include "calcPathCommand.h"
 #include "labyrinth.h"
 #include "position.h"
+#include "io/adc/adc.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -69,13 +70,27 @@ void stateMachine() {
 }
 
 void mazeExplore(void) {
-    setLabyrinthPose(*position_getCurrentPose());
+    // KEINE Odometrie mehr verwenden - Position wird nur durch manuelles Zählen aktualisiert
     exploreMaze();
 }
 
 void drive_Forward_distance_mm_then_explore(uint16_t distance_mm, int16_t pwmRight){
+    
+    /*
+    if(ADC_getFilteredValue(2) > 750) { //front
+        Motor_stopAll();
+        communication_log(LEVEL_INFO, "Front Wall to close, stop and explore maze...");
+        updateLabyrinthPosition();
+        setState(ExploreMaze);
+        return;
+    }
+    */
     drive_Forward_distance_mm(distance_mm, pwmRight);
-    if(currentState == IDLE) setState(ExploreMaze);
+    if(currentState == IDLE) {
+        // Manuelle Positionsaktualisierung nach Vorwärtsbewegung
+        updateLabyrinthPosition();
+        setState(ExploreMaze);
+    }
 }
 
 void turn_degrees_then_drive(int16_t angle_degrees, int16_t pwm){

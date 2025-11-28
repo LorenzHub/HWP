@@ -35,8 +35,8 @@
  *******************************************************************************
  */
 
-// robot's pose, initial pose: x=200, y=0, theta=PI/2 (Northern direction)
-static Pose_t pose = { 200.0f, 0.0f, M_PI_2 };
+// robot's pose, initial pose: x=0, y=0, theta=PI/2 (Northern direction)
+static Pose_t pose = { 0.0f, 0.0f, M_PI_2 };
 
 // Robot parameters for odometry calculation
 static RobotParameters_t robotParams = {

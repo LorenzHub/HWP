@@ -20,7 +20,8 @@ typedef struct {
 
 void exploreMaze();
 
-void setLabyrinthPose(Pose_t pose);
+void setLabyrinthPose(Pose_t pose); // Nur noch für Debug/Logging
+void updateLabyrinthPosition(void); // Manuelle Positionsaktualisierung nach Vorwärtsbewegung
 
 bool hasEscaped();
 
