@@ -68,8 +68,8 @@ void stateMachine() {
             break;    
         case FollowThePath:
             break;
-        case turn_On_Spot_degrees_then_explore:
-            turn_degrees_then_explore(targetAngle_degrees, targetPWM);
+        case correct_Orientation_then_explore:
+            correctOrientation_then_explore(targetAngle_degrees, targetPWM);
             break;
     }
 }
@@ -81,20 +81,19 @@ void mazeExplore(void) {
 void drive_Forward_distance_mm_then_explore(uint16_t distance_mm, int16_t pwmRight){
     drive_Forward_distance_mm(distance_mm, pwmRight);
     if(currentState == IDLE || ADC_getFilteredValue(2) > 690){
-        init_drive_forward = 0;
-        // Manuelle Positionsaktualisierung nach Vorwärtsbewegung
+        init_drive_forward = 0; //reset drive_forward_distance_mm
         updateLabyrinthPosition();
         correctOrientation();
         //setState(ExploreMaze); is done over correctOrientation()
     }
 }
 
-void turn_degrees_then_drive(int16_t angle_degrees, int16_t pwm){
-    turn_On_Spot_degrees(angle_degrees, pwm);
+void turn_degrees_then_drive(int16_t targetAngle_degrees, int16_t targetPWM){
+    turn_On_Spot_degrees(targetAngle_degrees, targetPWM);
     if(currentState == IDLE) setState(drive_Forward_distance_then_explore);
 }
 
-void turn_degrees_then_explore(int16_t targetAngle_degrees, int16_t targetPWM){
+void correctOrientation_then_explore(int16_t targetAngle_degrees, int16_t targetPWM){
     static uint8_t initialized = 0;
     timeTask_time_t now;
     
@@ -104,11 +103,13 @@ void turn_degrees_then_explore(int16_t targetAngle_degrees, int16_t targetPWM){
     }
     
     timeTask_getTimestamp(&now);
-    if (timeTask_getDuration(&start, &now) > 5000000UL) {  // 5 seconds in microseconds
+    if (timeTask_getDuration(&start, &now) > 5000000UL) {  // 1.5 seconds in microseconds
         turn_On_Spot_degrees(targetAngle_degrees, targetPWM);
-        initialized = 0;
+        if(currentState == IDLE){
+            initialized = 0;
+            setState(ExploreMaze);
     }
-    if(currentState == IDLE) setState(ExploreMaze);
+}
 }
 
 void drive_Forward_5sec() {

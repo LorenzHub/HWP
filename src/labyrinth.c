@@ -270,6 +270,7 @@ void DriveDirection(Direction_t nextDirection){
     
     communication_log(LEVEL_INFO, "Drive %s (dir %s, current %s)", move, dirNames[nextDirection], dirNames[labyrinthPose.cardinalDirection]);
     statemachine_setTargetPWM(5500);
+    statemachine_setTargetDistance(253); //Cell size 253.3mm with wall
 
     switch (diff) {
         case 0:
@@ -353,7 +354,7 @@ void correctOrientation()
     // convert to degrees
     float target_deg_f = err * (180.0f / M_PI); 
 
-    int16_t targetAngle = (int16_t)roundf(target_deg_f);
+    int16_t targetAngle = (int16_t)floorf((target_deg_f));
 
     int16_t theta_mrad = (int16_t)(currentPose->theta * 1000.0f);
     communication_log(LEVEL_INFO, "correctOrientation: cardinal=%" PRIu8 " targetAngle=%" PRId16 " theta_mrad=%" PRId16,
@@ -361,5 +362,5 @@ void correctOrientation()
     
     statemachine_setTargetPWM(5500);
     statemachine_setTargetAngle(-targetAngle);
-    setState(turn_On_Spot_degrees_then_explore); // oder den passenden State
+    setState(correct_Orientation_then_explore);
 }

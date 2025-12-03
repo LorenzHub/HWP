@@ -172,7 +172,7 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         break;
     }
     case 10: { // command ID 10: Fahre eine Zelle (256.9mm) mit Wand vorwärts
-        statemachine_setTargetDistance(257);
+        statemachine_setTargetDistance(240);
         statemachine_setTargetPWM(5000);
         setState(Drive_Forward_Distance);
         communication_log(LEVEL_INFO, "Fahre eine Zelle (257 mm) mit Wand vorwärts mit PWM 5000...");
