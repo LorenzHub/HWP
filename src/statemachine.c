@@ -16,6 +16,7 @@
 #include <math.h>
 
 
+
 /* Define the current state here (single-definition) */
 state currentState = IDLE;
 
@@ -32,6 +33,7 @@ static int16_t targetPWM = 3000;  // Default: 3000 PWM
 
 // Statische Variable für Ziel-Winkel in Grad
 static int16_t targetAngle_degrees = 90;  // Default: 90°
+static uint8_t initialized_drive = 0;
 
 // Vorwärtsdeklaration
 void correctRotationMovement_Wait(void);
@@ -88,6 +90,8 @@ void mazeExplore(void) {
 }
 
 void drive_Forward_distance_mm_then_explore(uint16_t distance_mm, int16_t pwmRight){
+    initialized_drive = 1;
+    
     // Starte Bewegung
     drive_Forward_distance_mm(distance_mm, pwmRight);
     //correctRotationMovement();
@@ -106,6 +110,7 @@ if(currentState == IDLE) {
 }
 
 void turn_degrees_then_drive(int16_t angle_degrees, int16_t pwm){
+    initialized_drive = 2;
     turn_On_Spot_degrees(angle_degrees, pwm);
 
     if(currentState == IDLE){
@@ -121,7 +126,7 @@ void correctRotationMovement_Wait(void) {
     if (!initialized) {
         timeTask_getTimestamp(&waitStart);
         initialized = 1;
-        communication_log(LEVEL_INFO, "Waiting 2 seconds after correction turn for sensor stabilization...");
+        communication_log(LEVEL_INFO, "Waiting 1 seconds after correction turn for sensor stabilization...");
     }
     
     timeTask_time_t now;
@@ -137,28 +142,45 @@ void correctRotationMovement_Wait(void) {
     }
 }
 
+/**
+ * Berechnet den Korrekturwinkel basierend auf der Sensor-Differenz
+ * @param diff Differenz zwischen den Sensoren in mm
+ * @param sensorDistance_mm Abstand zwischen den Sensoren in mm
+ * @return Korrekturwinkel in Grad (als int16_t)
+ */
+static int16_t calculateCorrectionAngle(int16_t diff, float sensorDistance_mm) {
+    // Berechne Winkel: atan(diff / sensorDistance) in Grad
+    float angle_rad = atanf((float)diff / sensorDistance_mm);
+    float angle_deg_float = angle_rad * 180.0f / 3.14159265359f * 0.8f;
+    int16_t angle_deg = (int16_t)angle_deg_float;
+    
+    // Konvertiere Float zu Integer für Log-Ausgabe (AVR unterstützt kein Float-Format)
+    int16_t angle_rad_mrad = (int16_t)(angle_rad * 1000.0f);  // Radiant in Milliradiant
+    int16_t angle_deg_cdeg = (int16_t)(angle_deg_float * 100.0f);  // Grad in Zentigrad
+    int16_t angle_deg_neg_cdeg = (int16_t)(-angle_deg_float * 100.0f);  // Negierter Winkel in Zentigrad
+    communication_log(LEVEL_INFO, "Calculated correction angle: %d mrad = %d cdeg (int: %d deg, negated: %d cdeg)", 
+                     angle_rad_mrad, angle_deg_cdeg, angle_deg, angle_deg_neg_cdeg);
+    
+    return angle_deg;
+}
+
 void correctRotationMovement(void) {
     communication_log(LEVEL_INFO, "TRYING Correcting rotation movement");
     // TODO: Implement correctRotationMovement
 
-    const int16_t correctionDistance_deg = 4;
-    const int16_t correctionDistance_mm = 5;
+    //const int16_t correctionDistance_deg = 4;
+    const int16_t correctionDistance_mm = 3;
     const int16_t correctionPWM = 4000;
+    const float sensorDistance_mm = 90.0f; // Abstand zwischen den Sensoren in mm
     
     if(ADC_getFilteredValue(0) > 400) { //rigth front
 
         int16_t diff = CalibrateIRSensors(1) - CalibrateIRSensors(0);
-        const float sensorDistance_mm = 9.0f; // Abstand zwischen den Sensoren in mm
-//Correct rotation movement with rigth sensors    
+        //Correct rotation movement with rigth sensors    
         if(diff < -correctionDistance_mm) { //right back - right front
         communication_log(LEVEL_INFO, "difference: %d - correcting right", diff);
-        
-        // Berechne Winkel: atan(diff / sensorDistance) in Grad
-        float angle_rad = atanf((float)diff / sensorDistance_mm);
-        int16_t angle_deg = (int16_t)(angle_rad * 180.0f / 3.14159265359f);
-        communication_log(LEVEL_INFO, "Calculated correction angle: %.2f rad = %d deg", angle_rad, angle_deg);
-        
-        statemachine_setTargetAngle(correctionDistance_deg);
+        int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
+        statemachine_setTargetAngle(-angle_deg);
         statemachine_setTargetPWM(correctionPWM);
         setState(turn_On_Spot_degrees_then_drive);
         
@@ -166,37 +188,38 @@ void correctRotationMovement(void) {
         }
         else if(diff > correctionDistance_mm) { //right front - right back
             communication_log(LEVEL_INFO, "difference: %d - correcting left", diff);
-            
-            // Berechne Winkel: atan(diff / sensorDistance) in Grad
-            float angle_rad = atanf((float)diff / sensorDistance_mm);
-            int16_t angle_deg = (int16_t)(angle_rad * 180.0f / 3.14159265359f);
-            communication_log(LEVEL_INFO, "Calculated correction angle: %.2f rad = %d deg (negated to %d deg)", angle_rad, angle_deg, -angle_deg);
-            
-            statemachine_setTargetAngle(-correctionDistance_deg); // Negativ, da nach links korrigiert wird
+            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
+            statemachine_setTargetAngle(-angle_deg); // Negativ, da nach links korrigiert wird
             statemachine_setTargetPWM(correctionPWM);
             setState(turn_On_Spot_degrees_then_drive);
+            
             
         }
         else{
             
             communication_log(LEVEL_INFO, "no correction needed - difference: %d", diff);
-            setState(drive_Forward_distance_then_explore);
+            if(initialized_drive == 1){
+                updateLabyrinthPosition();
+                setState(ExploreMaze);
+                initialized_drive = 0;
+            }
+            else if(initialized_drive == 2){
+                setState(drive_Forward_distance_then_explore);
+                initialized_drive = 0;
+            }
+            else{
+                initialized_drive = 0;
+            }
         }
     }
     else if(ADC_getFilteredValue(3) > 400) { //left front
         int16_t diff = CalibrateIRSensors(4) - CalibrateIRSensors(3);
-        const float sensorDistance_mm = 9.0f; // Abstand zwischen den Sensoren in mm
         
 //Correct rotation movement with left sensors
         if(diff < -correctionDistance_mm) { //left back - left front
             communication_log(LEVEL_INFO, "difference: %d - correcting left", diff);
-            
-            // Berechne Winkel: atan(diff / sensorDistance) in Grad
-            float angle_rad = atanf((float)diff / sensorDistance_mm);
-            int16_t angle_deg = (int16_t)(angle_rad * 180.0f / 3.14159265359f);
-            communication_log(LEVEL_INFO, "Calculated correction angle: %.2f rad = %d deg (negated to %d deg)", angle_rad, angle_deg, -angle_deg);
-            
-            statemachine_setTargetAngle(-correctionDistance_deg); // Negativ, da nach links korrigiert wird
+            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
+            statemachine_setTargetAngle(-angle_deg); // Negativ, da nach links korrigiert wird
             statemachine_setTargetPWM(correctionPWM);
             setState(turn_On_Spot_degrees_then_drive);
            
@@ -204,13 +227,8 @@ void correctRotationMovement(void) {
         }
         else if(diff > correctionDistance_mm) { //left front - left back
             communication_log(LEVEL_INFO, "difference: %d - correcting right", diff);
-            
-            // Berechne Winkel: atan(diff / sensorDistance) in Grad
-            float angle_rad = atanf((float)diff / sensorDistance_mm);
-            int16_t angle_deg = (int16_t)(angle_rad * 180.0f / 3.14159265359f);
-            communication_log(LEVEL_INFO, "Calculated correction angle: %.2f rad = %d deg", angle_rad, angle_deg);
-            
-            statemachine_setTargetAngle(correctionDistance_deg); // Positiv, da nach rechts korrigiert wird
+            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
+            statemachine_setTargetAngle(-angle_deg); // Positiv, da nach rechts korrigiert wird
             statemachine_setTargetPWM(correctionPWM);
             setState(turn_On_Spot_degrees_then_drive);
             
@@ -218,18 +236,38 @@ void correctRotationMovement(void) {
         }
         else{
             communication_log(LEVEL_INFO, "no correction needed - difference: %d", diff);
-            setState(drive_Forward_distance_then_explore);
+            if(initialized_drive == 1){
+                updateLabyrinthPosition();
+                setState(ExploreMaze);
+                initialized_drive = 0;
+            }
+            else if(initialized_drive == 2){
+                setState(drive_Forward_distance_then_explore);
+                initialized_drive = 0;
+            }
+            else{
+                initialized_drive = 0;
+            }
+            
+           
         }
         
     }
     else{
         communication_log(LEVEL_INFO, "no wall found for correction");
-        setState(drive_Forward_distance_then_explore);
-        
+        if(initialized_drive == 1){
+            updateLabyrinthPosition();
+            setState(ExploreMaze);
+            initialized_drive = 0;
         }
-    
-
-
+        else if(initialized_drive == 2){
+            setState(drive_Forward_distance_then_explore);
+            initialized_drive = 0;
+        }
+        else{
+            initialized_drive = 0;
+        }
+    }
 }
 
 
@@ -355,7 +393,7 @@ void drive_Forward_1000ticks() {
 // Fahre eine bestimmte Anzahl von Encoder-Ticks vorwärts mit kontinuierlicher Korrektur
 void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     /* logs for this function suppressed */
-    #define communication_log(level, ...) ((void)0)
+    //#define communication_log(level, ...) ((void)0)
     
     static uint8_t initialized = 0;
     static int16_t startEncoderR = 0;
@@ -390,9 +428,9 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     if (currentState == drive_Forward_distance_then_explore) {
         if (ADC_getFilteredValue(2) > 750) { // Front-Wand zu nahe
             Motor_stopAll();
-            #undef communication_log
+            //#undef communication_log
             communication_log(LEVEL_INFO, "Front wall detected - stopping movement");
-            #define communication_log(level, ...) ((void)0)
+            //#define communication_log(level, ...) ((void)0)
             // Position aktualisieren, da Roboter frontal auf Wand zufährt und nächste Zelle erreicht hat
             updateLabyrinthPosition();
             setState(ExploreMaze);
@@ -408,11 +446,11 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
         startEncoderL = encoder_getCountL();
         communication_log(LEVEL_INFO, "Start-Encoder: R=%" PRId16 " L=%" PRId16, startEncoderR, startEncoderL);
         
-        // Rechter Motor: Erhält PWM-Wert vom Parameter
-        targetPWMRight = pwmRight;
+        // Rechter Motor: IMMER konstant mit 4000 PWM
+        targetPWMRight = 4000;
         
-        // Linker Motor: Startet mit kalibriertem Wert für den gewünschten PWM-Wert
-        targetPWMLeft = calibration_getPWMLeft(pwmRight);
+        // Linker Motor: Startet mit kalibriertem Wert für 4000 PWM (damit beide gleich sind)
+        targetPWMLeft = calibration_getPWMLeft(4000);
         
         // Sicherheitsprüfung: Falls PWM-Werte 0 oder negativ sind, verwende Standard-Werte
         if (targetPWMLeft == 0 || targetPWMLeft < 0) {
@@ -562,18 +600,16 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
                     int16_t speedDiff = speedR - speedL;
                     int16_t absSpeedDiff = (speedDiff > 0) ? speedDiff : -speedDiff;
                     
-                    // Passe linken Motor an (kontinuierliche Korrektur - aggressiv wie beim Kalibrieren)
-                    // speedDiff = speedR - speedL
-                    // Wenn speedDiff > 0: R ist schneller -> erhöhe pwmLeft
-                    // Wenn speedDiff < 0: L ist schneller -> reduziere pwmLeft
+                    // Neue Logik: Wenn ein Encoder hinterherhinkt, erhöhe dessen PWM stärker
+                    // R bleibt konstant bei 4000, wird aber erhöht wenn R hinterherhinkt
+                    // L wird angepasst wenn L hinterherhinkt
+                    // Ziel: Beide Encoder sollen am Ende gleich sein
+                    int16_t adjustmentLeft = 0;
+                    int16_t adjustmentRight = 0;
+                    int16_t positionAdjustmentLeft = 0;
+                    int16_t positionAdjustmentRight = 0;
                     
-                    // Adaptive Anpassung basierend auf Geschwindigkeitsdifferenz UND kumulativer Position-Differenz
-                    // Ziel: Differenz zwischen 0-3 Ticks halten, aber Oszillationen vermeiden
-                    // Zusätzlich: Kumulative Position-Differenz ausgleichen (übersteuern)
-                    int16_t adjustment = 0;
-                    int16_t positionAdjustment = 0;
-                    
-                    // 1. Geschwindigkeitsdifferenz-basierte Korrektur (wie bisher)
+                    // 1. Geschwindigkeitsdifferenz-basierte Korrektur
                     // Hysterese-Logik: Verhindert schnelles Ein-/Ausschalten der Korrektur
                     if (absSpeedDiff > 6) {
                         // Differenz zu groß - aktiviere Korrektur
@@ -584,106 +620,94 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
                     }
                     // Bei 3 < Diff <= 6: Behalte aktuellen Zustand (correctionActive bleibt unverändert)
                     
-                    // Berechne Geschwindigkeits-Anpassung nur wenn Korrektur aktiv ist (konservativer)
-                    // WICHTIG: adjustment wird mit Vorzeichen berechnet (positiv/negativ)
+                    // Berechne Geschwindigkeits-Anpassung nur wenn Korrektur aktiv ist
+                    // NEUE LOGIK: Wenn ein Encoder hinterherhinkt, erhöhe dessen PWM stärker
                     if (correctionActive) {
                         int16_t adjustmentMagnitude = 0;
                         if (absSpeedDiff > 30) {
-                            adjustmentMagnitude = absSpeedDiff / 3; // Sehr große Differenz - konservativer
-                            if (adjustmentMagnitude > 15) adjustmentMagnitude = 15; // Max. 15 PWM
+                            adjustmentMagnitude = absSpeedDiff / 2; // Sehr große Differenz - stärker
+                            if (adjustmentMagnitude > 20) adjustmentMagnitude = 20; // Max. 20 PWM
                         } else if (absSpeedDiff > 15) {
-                            adjustmentMagnitude = absSpeedDiff / 4; // Große Differenz - konservativer
-                            if (adjustmentMagnitude > 10) adjustmentMagnitude = 10; // Max. 10 PWM
+                            adjustmentMagnitude = absSpeedDiff / 3; // Große Differenz - stärker
+                            if (adjustmentMagnitude > 15) adjustmentMagnitude = 15; // Max. 15 PWM
                         } else if (absSpeedDiff > 6) {
-                            adjustmentMagnitude = absSpeedDiff / 3; // Mittlere Differenz - konservativer
-                            if (adjustmentMagnitude > 5) adjustmentMagnitude = 5; // Max. 5 PWM
+                            adjustmentMagnitude = absSpeedDiff / 2; // Mittlere Differenz - stärker
+                            if (adjustmentMagnitude > 8) adjustmentMagnitude = 8; // Max. 8 PWM
                         } else {
-                            // Diff zwischen 3-6: Sehr kleine, gedämpfte Korrektur
-                            adjustmentMagnitude = 1; // Nur 1 PWM pro Schritt
+                            // Diff zwischen 3-6: Kleine Korrektur
+                            adjustmentMagnitude = 2; // 2 PWM pro Schritt
                         }
                         
                         // Richtung: speedDiff = speedR - speedL
-                        // Wenn speedDiff > 0: R ist schneller -> erhöhe pwmLeft (L schneller machen)
-                        // Wenn speedDiff < 0: L ist schneller -> reduziere pwmLeft (L langsamer machen)
+                        // Wenn speedDiff > 0: R ist schneller -> L hinterher -> erhöhe pwmLeft
+                        // Wenn speedDiff < 0: L ist schneller -> R hinterher -> erhöhe pwmRight
                         if (speedDiff > 0) {
-                            adjustment = adjustmentMagnitude; // R schneller -> erhöhe pwmLeft
+                            adjustmentLeft = adjustmentMagnitude; // L hinterher -> erhöhe pwmLeft
                         } else {
-                            adjustment = -adjustmentMagnitude; // L schneller -> reduziere pwmLeft
+                            adjustmentRight = adjustmentMagnitude; // R hinterher -> erhöhe pwmRight
                         }
                     }
                     
                     // 2. Kumulative Position-Differenz-basierte Korrektur (übersteuern)
                     // Wenn eine Position-Differenz aufgelaufen ist, korrigiere diese zusätzlich
-                    // ABER: Sehr konservativ, um Überkorrektur zu vermeiden
+                    // NEUE LOGIK: Wenn ein Encoder hinterherhinkt, erhöhe dessen PWM stärker
                     int16_t absPositionDiff = (positionDiff > 0) ? positionDiff : -positionDiff;
-                    if (absPositionDiff > 20) {  // Erhöht von 5 auf 20 - nur bei größeren Differenzen
-                        // Signifikante Position-Differenz - korrigiere diese sehr konservativ
+                    if (absPositionDiff > 10) {  // Schwellwert für Position-Korrektur
+                        // Signifikante Position-Differenz - korrigiere diese
                         // Position-Diff wird in Geschwindigkeits-Anpassung umgerechnet
-                        // Je größer die Position-Diff, desto stärker die Korrektur (aber gedämpft)
+                        // Je größer die Position-Diff, desto stärker die Korrektur
+                        int16_t posAdjMagnitude = 0;
                         if (absPositionDiff > 100) {
-                            positionAdjustment = absPositionDiff / 20; // Sehr große Position-Diff - sehr konservativ
-                            if (positionAdjustment > 5) positionAdjustment = 5; // Max. 5 PWM
+                            posAdjMagnitude = absPositionDiff / 15; // Sehr große Position-Diff
+                            if (posAdjMagnitude > 10) posAdjMagnitude = 10; // Max. 10 PWM
                         } else if (absPositionDiff > 50) {
-                            positionAdjustment = absPositionDiff / 15; // Große Position-Diff - konservativ
-                            if (positionAdjustment > 4) positionAdjustment = 4; // Max. 4 PWM
+                            posAdjMagnitude = absPositionDiff / 12; // Große Position-Diff
+                            if (posAdjMagnitude > 8) posAdjMagnitude = 8; // Max. 8 PWM
                         } else {
-                            positionAdjustment = absPositionDiff / 12; // Mittlere Position-Diff - konservativ
-                            if (positionAdjustment > 3) positionAdjustment = 3; // Max. 3 PWM
+                            posAdjMagnitude = absPositionDiff / 10; // Mittlere Position-Diff
+                            if (posAdjMagnitude > 5) posAdjMagnitude = 5; // Max. 5 PWM
                         }
                         
                         // Richtung: positionDiff = deltaR - deltaL
-                        // Wenn positionDiff > 0: R ist weiter -> erhöhe pwmLeft (L schneller machen)
-                        // Wenn positionDiff < 0: L ist weiter -> reduziere pwmLeft (L langsamer machen)
-                        if (positionDiff < 0) {
-                            // L ist weiter (negativ) -> reduziere pwmLeft (langsamer machen)
-                            positionAdjustment = -positionAdjustment;
+                        // Wenn positionDiff > 0: R ist weiter -> L hinterher -> erhöhe pwmLeft
+                        // Wenn positionDiff < 0: L ist weiter -> R hinterher -> erhöhe pwmRight
+                        if (positionDiff > 0) {
+                            positionAdjustmentLeft = posAdjMagnitude; // L hinterher -> erhöhe pwmLeft
+                        } else {
+                            positionAdjustmentRight = posAdjMagnitude; // R hinterher -> erhöhe pwmRight
                         }
-                        // Wenn positionDiff > 0: R ist weiter -> positionAdjustment bleibt positiv (pwmLeft erhöhen)
                     }
                     
-                    // Kombiniere beide Anpassungen (sehr konservativ)
-                    int16_t totalAdjustment = adjustment;
-                    if (positionAdjustment != 0) {
-                        // Position-Korrektur wird nur als kleine Zusatzkorrektur verwendet
-                        // Geschwindigkeits-Korrektur hat Vorrang
-                        if (absPositionDiff > 50 && absPositionDiff > absSpeedDiff * 2) {
-                            // Nur wenn Position-Diff sehr groß ist UND deutlich größer als Speed-Diff
-                            // Dann verwende hauptsächlich Position-Korrektur (aber gedämpft)
-                            totalAdjustment = positionAdjustment;
-                            // Füge kleine Geschwindigkeits-Korrektur hinzu (wenn aktiv)
-                            if (adjustment != 0) {
-                                totalAdjustment += adjustment / 3; // Sehr gedämpft
-                            }
-                        } else {
-                            // Normalerweise: Geschwindigkeits-Korrektur hat Vorrang
-                            totalAdjustment = adjustment;
-                            // Füge kleine Position-Korrektur hinzu (sehr gedämpft)
-                            totalAdjustment += positionAdjustment / 3; // Sehr gedämpft (1/3 statt 1/2)
-                        }
-                    }
+                    // Kombiniere beide Anpassungen für jeden Motor separat
+                    int16_t totalAdjustmentLeft = adjustmentLeft + positionAdjustmentLeft;
+                    int16_t totalAdjustmentRight = adjustmentRight + positionAdjustmentRight;
                     
                     // Maximum-Anpassung begrenzen (nicht zu große Sprünge)
-                    int16_t absTotalAdjustment = (totalAdjustment > 0) ? totalAdjustment : -totalAdjustment;
-                    if (absTotalAdjustment > 15) {
-                        totalAdjustment = (totalAdjustment > 0) ? 15 : -15;
+                    int16_t absTotalAdjLeft = (totalAdjustmentLeft > 0) ? totalAdjustmentLeft : -totalAdjustmentLeft;
+                    int16_t absTotalAdjRight = (totalAdjustmentRight > 0) ? totalAdjustmentRight : -totalAdjustmentRight;
+                    if (absTotalAdjLeft > 20) {
+                        totalAdjustmentLeft = (totalAdjustmentLeft > 0) ? 20 : -20;
+                    }
+                    if (absTotalAdjRight > 20) {
+                        totalAdjustmentRight = (totalAdjustmentRight > 0) ? 20 : -20;
                     }
                     
-                    adjustment = totalAdjustment;
-                    
-                    // Flüssige Anpassung nur des linken Motors
-                    if (adjustment != 0) {
-                        // adjustment kann jetzt auch negativ sein (durch Position-Korrektur)
-                        targetPWMLeft += adjustment;
+                    // Anpassung der PWM-Werte
+                    // L: Wird angepasst wenn L hinterherhinkt
+                    if (totalAdjustmentLeft != 0) {
+                        targetPWMLeft += totalAdjustmentLeft;
                     }
                     
-                    // Begrenze linken PWM-Wert (nicht zu weit vom Basis-Wert entfernen)
-                    int16_t maxDeviation = targetPWMRight / 2; // Max. 50% Abweichung
-                    if (targetPWMLeft < targetPWMRight - maxDeviation) targetPWMLeft = targetPWMRight - maxDeviation;
-                    if (targetPWMLeft > targetPWMRight + maxDeviation) targetPWMLeft = targetPWMRight + maxDeviation;
+                    // R: Wird angepasst wenn R hinterherhinkt (startet bei 4000)
+                    if (totalAdjustmentRight != 0) {
+                        targetPWMRight += totalAdjustmentRight;
+                    }
                     
                     // Absolute Grenzen: PWM muss zwischen 1000 und 8191 sein
                     if (targetPWMLeft < 1000) targetPWMLeft = 1000;
                     if (targetPWMLeft > 8191) targetPWMLeft = 8191;
+                    if (targetPWMRight < 1000) targetPWMRight = 1000;
+                    if (targetPWMRight > 8191) targetPWMRight = 8191;
                     
                     // Setze neue PWM-Werte direkt (Motoren laufen weiter)
                     Motor_setPWM(targetPWMLeft, targetPWMRight);
@@ -697,9 +721,9 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
                     }
                     
                     // Logge immer: Bei jeder Messung (alle 200ms) ODER wenn Korrektur stattfindet
-                    if (adjustment != 0 || timeSinceLastLog >= 200000UL || (lastLogTime.time_ms == 0 && lastLogTime.time_us == 0)) {
-                        communication_log(LEVEL_INFO, "Korrektur: Speed L=%" PRId16 " R=%" PRId16 " SpeedDiff=%" PRId16 " PosDiff=%" PRId16 " -> PWM L=%" PRId16 " R=%" PRId16 " (Adj=%" PRId16 ")", 
-                                         speedL, speedR, speedDiff, positionDiff, targetPWMLeft, targetPWMRight, adjustment);
+                    if (totalAdjustmentLeft != 0 || totalAdjustmentRight != 0 || timeSinceLastLog >= 200000UL || (lastLogTime.time_ms == 0 && lastLogTime.time_us == 0)) {
+                        communication_log(LEVEL_INFO, "Korrektur: Speed L=%" PRId16 " R=%" PRId16 " SpeedDiff=%" PRId16 " PosDiff=%" PRId16 " -> PWM L=%" PRId16 " R=%" PRId16 " (AdjL=%" PRId16 " AdjR=%" PRId16 ")", 
+                                         speedL, speedR, speedDiff, positionDiff, targetPWMLeft, targetPWMRight, totalAdjustmentLeft, totalAdjustmentRight);
                         timeTask_getTimestamp(&lastLogTime);
                     }
                     
@@ -788,7 +812,7 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
             initialized = 0;
         }
     }
-#undef communication_log
+//#undef communication_log
 }
 
 void drive_Forward_5sec() {
@@ -849,7 +873,7 @@ void statemachine_setTargetAngle(int16_t angle_degrees) {
   pwm: PWM-Wert für beide Motoren (absolut)*/
 void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm) {
     /* logs for this function suppressed */
-    #define communication_log(level, ...) ((void)0)
+    //#define communication_log(level, ...) ((void)0)
     static uint8_t initialized = 0;
     static int16_t startEncoderR = 0;
     static int16_t startEncoderL = 0;
@@ -1006,8 +1030,8 @@ int16_t absAngle= (angle_degrees > 0) ? angle_degrees : -angle_degrees;
                 communication_log(LEVEL_INFO, "===========================");
 
                 
-               
-                setState(CorrectRotationMovement_Wait);
+               setState(IDLE);//Temp
+                //setState(CorrectRotationMovement_Wait);
                 initialized = 0;
             }
         }

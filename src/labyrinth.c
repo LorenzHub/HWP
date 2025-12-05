@@ -81,26 +81,55 @@ bool hasEscaped(){
 }
 
 void checkWalls(uint8_t* availableDirections) {
-    Walls_t walls = labyrinth_getWalls(labyrinthPose.x, labyrinthPose.y); //(for communication with HWPCS)
+
+    Walls_t walls = labyrinth_getWalls(6-labyrinthPose.y, labyrinthPose.x); //(for communication with HWPCS)
+
     *availableDirections = 0;
+
     if(ADC_getFilteredValue(2) < 200) { //front
+
         *availableDirections += 1;    
-        walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_NORTH)); //set wall to no wall(for communication with HWPCS); standard is wall present
+
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_NORTH));
+
     }
+
+    else
+
+        walls.walls |= (1 << (uint8_t) getCardinalDirectionfromLookingDirection(DIRECTION_NORTH)); //set wall to wall present(for communication with HWPCS)
+
     if(ADC_getFilteredValue(0) < 200) { //right front
+
         *availableDirections += 1;
-        walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_EAST)); //set wall to no wall(for communication with HWPCS); standard is wall present
+
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_EAST));
+
     }
+
+    else 
+
+        walls.walls |= (1 << (uint8_t) getCardinalDirectionfromLookingDirection(DIRECTION_EAST)); //set wall to wall present(for communication with HWPCS)
+
     if(ADC_getFilteredValue(3) < 200) { //left front
+
         *availableDirections += 1;
-        walls.walls &= ~(1 << getCardinalDirectionfromLookingDirection(DIRECTION_WEST)); //set wall to no wall(for communication with HWPCS); standard is wall present
+
         setNoWall(getCardinalDirectionfromLookingDirection(DIRECTION_WEST));
+
     }
-    labyrinth_setWalls(labyrinthPose.x, labyrinthPose.y, walls);
+
+    else
+
+        walls.walls |= (1 << (uint8_t) getCardinalDirectionfromLookingDirection(DIRECTION_WEST)); //set wall to wall present(for communication with HWPCS)
+
+
+
+    labyrinth_setWalls(6-labyrinthPose.y, labyrinthPose.x, walls);
+
     communication_log(LEVEL_INFO, "Walls checked: %" PRIu16 " directions available (IR: front=%u, right=%u, left=%u)", 
+
                      *availableDirections, ADC_getFilteredValue(2), ADC_getFilteredValue(0), ADC_getFilteredValue(3));
+
 }
 
 bool isPlace(){

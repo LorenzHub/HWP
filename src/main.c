@@ -165,7 +165,7 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         break;
     }
     case 9: { // command ID 9: Fahre 5000 ticks vorwärts
-        statemachine_setTargetTicks(2048);
+        statemachine_setTargetDistance(257*6);
         statemachine_setTargetPWM(4000);
         setState(Drive_Forward_Ticks);
         communication_log(LEVEL_INFO, "Fahre 5000 ticks vorwärts mit PWM 4000...");
@@ -331,10 +331,10 @@ int main(void) {
             position_updateExpectedPose();
             
             // Berechne Differenz zwischen Odometrie und Kamera-Pose
-            position_calculatePoseDifference();
+            //position_calculatePoseDifference();
             
             // Wende automatische Korrektur an (gewichtete Sensorfusion)
-            position_applyCorrection();
+            //position_applyCorrection();
             
             // Hole aktuelle Pose
             const Pose_t* currentPose = position_getCurrentPose();
