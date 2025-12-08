@@ -178,6 +178,13 @@ static void commUserCommand(const uint8_t* packet, __attribute__((unused)) const
         communication_log(LEVEL_INFO, "Fahre eine Zelle (257 mm) mit Wand vorwärts mit PWM 5000...");
         break;
     }
+    case 11: { // command ID 11: Fahre isoliert 20000 Ticks vorwärts (ohne Labyrinth-Exploration)
+        statemachine_setTargetTicks(20000);
+        statemachine_setTargetPWM(5500);
+        setState(Drive_Forward_Ticks);
+        communication_log(LEVEL_INFO, "Fahre isoliert 20000 Ticks vorwärts mit PWM 5500 (ohne Labyrinth-Exploration)...");
+        break;
+    }
     case 12: { // command ID 12: Drehe 90° links auf der Stelle
         statemachine_setTargetAngle(1);
         statemachine_setTargetPWM(4000);

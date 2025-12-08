@@ -20,13 +20,21 @@
 /* Define the current state here (single-definition) */
 state currentState = IDLE;
 
-static timeTask_time_t start;
-
 // Statische Variable für Ziel-Distanz in mm
 static uint16_t targetDistance_mm = 100;  // Default: 100mm
 
 // Statische Variable für Ziel-Ticks
 static int16_t targetTicks = 1000;  // Default: 1000 Ticks
+
+// Wall-Following Konfigurationsvariablen
+static int16_t wall_detection_threshold_mm_config = 45;
+static int16_t wall_correction_threshold_mm_config = 50;
+static int16_t wall_distance_gain_config = 30;
+static int16_t wall_parallel_gain_config = 50;
+static int16_t center_target_distance_mm_config = 60;
+
+// Wandkorrektur Ein/Aus (1 = aktiviert, 0 = deaktiviert)
+static uint8_t wall_correction_enabled = 0;  // Default: DEAKTIVIERT
 
 // Statische Variable für PWM-Wert des rechten Motors
 static int16_t targetPWM = 3000;  // Default: 3000 PWM
@@ -46,11 +54,6 @@ void stateMachine() {
         case Turn_On_Spot:
             /* rotate in-place */
             Motor_setPWM(3000, -3000);
-            break;
-        case Drive_Forward: //Motor A drives left wheel, Motor B drives right wheel
-            break;
-        case Drive_Forward_5sec:
-            drive_Forward_5sec();
             break;
         case Calibrate_Distance:
             calibration_run();
@@ -80,6 +83,9 @@ void stateMachine() {
             break;
         case CorrectRotationMovement_Wait:
             correctRotationMovement_Wait();
+            break;
+        case Drive_Forward_Ticks_With_Wall_Following:
+            drive_Forward_ticks_with_wall_following(targetTicks, targetPWM);
             break;
     }
 }
@@ -166,75 +172,78 @@ static int16_t calculateCorrectionAngle(int16_t diff, float sensorDistance_mm) {
 
 void correctRotationMovement(void) {
     communication_log(LEVEL_INFO, "TRYING Correcting rotation movement");
-    // TODO: Implement correctRotationMovement
 
-    //const int16_t correctionDistance_deg = 4;
+    // Prüfe ob Wandkorrektur aktiviert ist
+    if (!wall_correction_enabled) {
+        communication_log(LEVEL_INFO, "Wall correction DISABLED - skipping");
+        // Direkt zum nächsten State ohne Korrektur
+        if(initialized_drive == 1){
+            updateLabyrinthPosition();
+            setState(ExploreMaze);
+            initialized_drive = 0;
+        }
+        else if(initialized_drive == 2){
+            setState(drive_Forward_distance_then_explore);
+            initialized_drive = 0;
+        }
+        else{
+            initialized_drive = 0;
+        }
+        return;
+    }
+
     const int16_t correctionDistance_mm = 3;
     const int16_t correctionPWM = 4000;
     const float sensorDistance_mm = 90.0f; // Abstand zwischen den Sensoren in mm
+    const int16_t escapeAngle_deg = 5; // Winkel zum Wegdrehen von der Wand
     
-    if(ADC_getFilteredValue(0) > 400) { //rigth front
-
-        int16_t diff = CalibrateIRSensors(1) - CalibrateIRSensors(0);
-        //Correct rotation movement with rigth sensors    
-        if(diff < -correctionDistance_mm) { //right back - right front
-        communication_log(LEVEL_INFO, "difference: %d - correcting right", diff);
-        int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
-        statemachine_setTargetAngle(-angle_deg);
+    // Hole Sensorwerte
+    uint16_t rightFrontADC = ADC_getFilteredValue(0);  // IR1 - Right Front
+    uint16_t leftFrontADC = ADC_getFilteredValue(3);   // IR4 - Left Front
+    
+    // ==================== ZU NAH AN WAND ERKENNUNG ====================
+    // Wenn Sensorwert zwischen 400-700: ZU NAH an der Wand (Werte fallen wieder ab)
+    // -> Muss von dieser Wand WEG korrigieren
+    
+    // Zu nah an RECHTER Wand? -> Nach LINKS wegdrehen
+    if(rightFrontADC >= 400 && rightFrontADC <= 700) {
+        communication_log(LEVEL_WARNING, "ZU NAH AN RECHTER WAND! ADC=%u (400-700) - drehe nach LINKS weg", rightFrontADC);
+        statemachine_setTargetAngle(escapeAngle_deg);  // Positiv = nach links
         statemachine_setTargetPWM(correctionPWM);
         setState(turn_On_Spot_degrees_then_drive);
-        
-    
-        }
-        else if(diff > correctionDistance_mm) { //right front - right back
-            communication_log(LEVEL_INFO, "difference: %d - correcting left", diff);
-            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
-            statemachine_setTargetAngle(-angle_deg); // Negativ, da nach links korrigiert wird
-            statemachine_setTargetPWM(correctionPWM);
-            setState(turn_On_Spot_degrees_then_drive);
-            
-            
-        }
-        else{
-            
-            communication_log(LEVEL_INFO, "no correction needed - difference: %d", diff);
-            if(initialized_drive == 1){
-                updateLabyrinthPosition();
-                setState(ExploreMaze);
-                initialized_drive = 0;
-            }
-            else if(initialized_drive == 2){
-                setState(drive_Forward_distance_then_explore);
-                initialized_drive = 0;
-            }
-            else{
-                initialized_drive = 0;
-            }
-        }
+        return;
     }
-    else if(ADC_getFilteredValue(3) > 400) { //left front
-        int16_t diff = CalibrateIRSensors(4) - CalibrateIRSensors(3);
+    
+    // Zu nah an LINKER Wand? -> Nach RECHTS wegdrehen
+    if(leftFrontADC >= 400 && leftFrontADC <= 700) {
+        communication_log(LEVEL_WARNING, "ZU NAH AN LINKER WAND! ADC=%u (400-700) - drehe nach RECHTS weg", leftFrontADC);
+        statemachine_setTargetAngle(-escapeAngle_deg);  // Negativ = nach rechts
+        statemachine_setTargetPWM(correctionPWM);
+        setState(turn_On_Spot_degrees_then_drive);
+        return;
+    }
+    
+    // ==================== NORMALE PARALLELITÄTS-KORREKTUR ====================
+    // Sensorwert > 700: Wand in gutem Abstand erkannt -> normale Korrektur
+    
+    if(rightFrontADC > 700) { // Rechte Wand in gutem Abstand
+        int16_t diff = CalibrateIRSensors(1) - CalibrateIRSensors(0);
         
-//Correct rotation movement with left sensors
-        if(diff < -correctionDistance_mm) { //left back - left front
-            communication_log(LEVEL_INFO, "difference: %d - correcting left", diff);
-            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
-            statemachine_setTargetAngle(-angle_deg); // Negativ, da nach links korrigiert wird
-            statemachine_setTargetPWM(correctionPWM);
-            setState(turn_On_Spot_degrees_then_drive);
-           
-           
-        }
-        else if(diff > correctionDistance_mm) { //left front - left back
+        if(diff < -correctionDistance_mm) {
             communication_log(LEVEL_INFO, "difference: %d - correcting right", diff);
             int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
-            statemachine_setTargetAngle(-angle_deg); // Positiv, da nach rechts korrigiert wird
+            statemachine_setTargetAngle(-angle_deg);
             statemachine_setTargetPWM(correctionPWM);
             setState(turn_On_Spot_degrees_then_drive);
-            
-            
         }
-        else{
+        else if(diff > correctionDistance_mm) {
+            communication_log(LEVEL_INFO, "difference: %d - correcting left", diff);
+            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
+            statemachine_setTargetAngle(-angle_deg);
+            statemachine_setTargetPWM(correctionPWM);
+            setState(turn_On_Spot_degrees_then_drive);
+        }
+        else {
             communication_log(LEVEL_INFO, "no correction needed - difference: %d", diff);
             if(initialized_drive == 1){
                 updateLabyrinthPosition();
@@ -248,13 +257,44 @@ void correctRotationMovement(void) {
             else{
                 initialized_drive = 0;
             }
-            
-           
         }
-        
     }
-    else{
-        communication_log(LEVEL_INFO, "no wall found for correction");
+    else if(leftFrontADC > 700) { // Linke Wand in gutem Abstand
+        int16_t diff = CalibrateIRSensors(4) - CalibrateIRSensors(3);
+        
+        if(diff < -correctionDistance_mm) {
+            communication_log(LEVEL_INFO, "difference: %d - correcting left", diff);
+            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
+            statemachine_setTargetAngle(-angle_deg);
+            statemachine_setTargetPWM(correctionPWM);
+            setState(turn_On_Spot_degrees_then_drive);
+        }
+        else if(diff > correctionDistance_mm) {
+            communication_log(LEVEL_INFO, "difference: %d - correcting right", diff);
+            int16_t angle_deg = calculateCorrectionAngle(diff, sensorDistance_mm);
+            statemachine_setTargetAngle(-angle_deg);
+            statemachine_setTargetPWM(correctionPWM);
+            setState(turn_On_Spot_degrees_then_drive);
+        }
+        else {
+            communication_log(LEVEL_INFO, "no correction needed - difference: %d", diff);
+            if(initialized_drive == 1){
+                updateLabyrinthPosition();
+                setState(ExploreMaze);
+                initialized_drive = 0;
+            }
+            else if(initialized_drive == 2){
+                setState(drive_Forward_distance_then_explore);
+                initialized_drive = 0;
+            }
+            else{
+                initialized_drive = 0;
+            }
+        }
+    }
+    else {
+        // Keine Wand erkannt (beide < 400)
+        communication_log(LEVEL_INFO, "no wall found for correction (R=%u, L=%u)", rightFrontADC, leftFrontADC);
         if(initialized_drive == 1){
             updateLabyrinthPosition();
             setState(ExploreMaze);
@@ -271,7 +311,7 @@ void correctRotationMovement(void) {
 }
 
 // Fahre eine bestimmte Anzahl von Encoder-Ticks vorwärts mit kontinuierlicher Korrektur
-void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
+void drive_Forward_ticks(int32_t targetTicksValue, int16_t pwmRight) {
     // ==================== STATISCHE VARIABLEN ====================
     // Initialisierung und Zustand
     static uint8_t initialized = 0;
@@ -282,6 +322,10 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     static int16_t startEncoderL = 0;
     static int16_t lastEncoderR = 0;
     static int16_t lastEncoderL = 0;
+    static int16_t lastEncoderR_acc = 0;  // Für Overflow-sichere Akkumulation
+    static int16_t lastEncoderL_acc = 0;
+    static int32_t accumulatedDeltaR = 0; // Akkumulierte Ticks (Overflow-sicher)
+    static int32_t accumulatedDeltaL = 0;
     
     // PWM-Werte
     static int16_t targetPWMLeft = 0;
@@ -309,19 +353,19 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     const int16_t softStartStep = 200;          // PWM-Schrittweite für Soft-Start
     const uint32_t softStartInterval = 50000UL; // 50ms zwischen Soft-Start-Schritten
     
-    // PI-Regler Parameter
-    const int16_t Kp = 50;                      // Proportional-Verstärkung (skaliert mit /100)
-    const int16_t Ki = 10;                      // Integral-Verstärkung (skaliert mit /100)
-    const int32_t maxIntegral = 5000;           // Anti-Windup Grenze
-    const int16_t deadZone = 2;                 // Totzone für Geschwindigkeitsdifferenz
-    const int16_t maxAdjustment = 500;          // Maximale PWM-Korrektur
-    const int16_t maxSlewRate = 100;            // Maximale PWM-Änderung pro Zyklus
-    const int16_t positionCorrectionThreshold = 5; // Schwelle für Positions-Korrektur
-    
+    // OPTIMIERTE PI-Regler Parameter für bessere Performance bei Asymmetrien
+    const int16_t Kp = 100;                     // ERHÖHT: Proportional-Verstärkung (+100% für stärkere Korrektur)
+    const int16_t Ki = 10;                      // AKTIVIERT: Integral-Verstärkung für Langzeit-Korrektur
+    const int32_t maxIntegral = 3000;           // REDUZIERT: Anti-Windup Grenze für stabileren I-Anteil
+    const int16_t deadZone = 1;                 // REDUZIERT: Totzone für sensitivere Regelung
+    const int16_t maxAdjustment = 1000;         // ERHÖHT: Maximale PWM-Korrektur (+100% für stärkere Asymmetrien)
+    const int16_t maxSlewRate = 150;            // ERHÖHT: Maximale PWM-Änderung pro Zyklus (+50%)
+    const int16_t positionCorrectionThreshold = 3; // REDUZIERT: Schwelle für frühere Positions-Korrektur
+
     // Timing Parameter
     const uint32_t controlLoopInterval = 20000UL; // 20ms Regelzyklus
-    const uint32_t logInterval = 100000UL;        // 100ms Log-Intervall
-    const int16_t minSpeedTicks = 3;              // Mindest-Ticks für gültige Geschwindigkeitsmessung
+    // const uint32_t logInterval = 100000UL;        // 100ms Log-Intervall - TEMPORÄR DEAKTIVIERT
+    const int16_t minSpeedTicks = 2;              // REDUZIERT: Mindest-Ticks für frühere Regelung
     
     // Abbremsen Parameter
     const int16_t rampDownThreshold = 100;      // Ticks vor Ziel: Abbremsen beginnen
@@ -347,6 +391,11 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
         startEncoderL = encoder_getCountL();
         lastEncoderR = startEncoderR;
         lastEncoderL = startEncoderL;
+        // Akkumulierte Deltas für Overflow-sichere Messung initialisieren
+        lastEncoderR_acc = startEncoderR;
+        lastEncoderL_acc = startEncoderL;
+        accumulatedDeltaR = 0;
+        accumulatedDeltaL = 0;
         communication_log(LEVEL_INFO, "Start-Encoder: R=%" PRId16 " L=%" PRId16, startEncoderR, startEncoderL);
         
         // PWM-Werte setzen
@@ -383,7 +432,7 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
         
         phase = 0;
         initialized = 1;
-        communication_log(LEVEL_INFO, "Fahre %" PRId16 " Ticks, Ziel-PWM L=%" PRId16 " R=%" PRId16, 
+        communication_log(LEVEL_INFO, "Fahre %" PRId32 " Ticks, Ziel-PWM L=%" PRId16 " R=%" PRId16, 
                          targetTicksValue, targetPWMLeft, targetPWMRight);
     }
     
@@ -393,24 +442,34 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     
     int16_t currentEncoderR = encoder_getCountR();
     int16_t currentEncoderL = encoder_getCountL();
-    int16_t deltaR = currentEncoderR - startEncoderR;
-    int16_t deltaL = currentEncoderL - startEncoderL;
-    int16_t avgDelta = (deltaL + deltaR) / 2;
-    int16_t remainingTicks = targetTicksValue - avgDelta;
-    int16_t positionDiff = deltaR - deltaL;  // Positions-Differenz zwischen Rädern
+    
+    // Overflow-sichere Delta-Berechnung durch Akkumulation kleiner Inkremente
+    // Die Subtraktion von int16_t-Werten behandelt Overflow automatisch korrekt (2er-Komplement)
+    int16_t incR = currentEncoderR - lastEncoderR_acc;
+    int16_t incL = currentEncoderL - lastEncoderL_acc;
+    accumulatedDeltaR += incR;
+    accumulatedDeltaL += incL;
+    lastEncoderR_acc = currentEncoderR;
+    lastEncoderL_acc = currentEncoderL;
+    
+    int32_t deltaR = accumulatedDeltaR;
+    int32_t deltaL = accumulatedDeltaL;
+    int32_t avgDelta = (deltaL + deltaR) / 2;
+    int32_t remainingTicks = targetTicksValue - avgDelta;
+    int16_t positionDiff = (int16_t)(deltaR - deltaL);  // Positions-Differenz zwischen Rädern
     
     // ==================== ZIEL ERREICHT? ====================
     if (avgDelta >= targetTicksValue) {
         Motor_stopAll();
         
-        int16_t encoderDiff = deltaR - deltaL;
-        int16_t absEncoderDiff = (encoderDiff > 0) ? encoderDiff : -encoderDiff;
-        uint16_t actualDistance_mm = (uint16_t)((int32_t)avgDelta * 688 / 10000);
+        int32_t encoderDiff = deltaR - deltaL;
+        int32_t absEncoderDiff = (encoderDiff > 0) ? encoderDiff : -encoderDiff;
+        uint16_t actualDistance_mm = (uint16_t)(avgDelta * 688 / 10000);
         uint32_t duration_ms = timeTask_getDuration(&startOfDrive, &now) / 1000;
         
         communication_log(LEVEL_INFO, "=== Fahrt abgeschlossen ===");
-        communication_log(LEVEL_INFO, "Ziel: %" PRId16 " Ticks, Erreicht: %" PRId16 " Ticks", targetTicksValue, avgDelta);
-        communication_log(LEVEL_INFO, "Encoder L=%" PRId16 " R=%" PRId16 " Diff=%" PRId16, deltaL, deltaR, encoderDiff);
+        communication_log(LEVEL_INFO, "Ziel: %" PRId32 " Ticks, Erreicht: %" PRId32 " Ticks", targetTicksValue, avgDelta);
+        communication_log(LEVEL_INFO, "Encoder L=%" PRId32 " R=%" PRId32 " Diff=%" PRId32, deltaL, deltaR, encoderDiff);
         communication_log(LEVEL_INFO, "Distanz: ~%u mm, Zeit: %lu ms", actualDistance_mm, (unsigned long)duration_ms);
         
         if (absEncoderDiff <= 2) {
@@ -458,9 +517,9 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     }
     
     // Prüfe ob Abbremsen beginnen soll
-    if (phase == 1 && remainingTicks <= rampDownThreshold) {
+    if (phase == 1 && remainingTicks <= (int32_t)rampDownThreshold) {
         phase = 2;
-        communication_log(LEVEL_INFO, "Beginne Abbremsen, verbleibend: %" PRId16 " Ticks", remainingTicks);
+        communication_log(LEVEL_INFO, "Beginne Abbremsen, verbleibend: %" PRId32 " Ticks", remainingTicks);
     }
     
     // Geschwindigkeit berechnen
@@ -508,7 +567,7 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
             // Positions-Korrektur
             int16_t posTerm = 0;
             if (absPositionDiff > positionCorrectionThreshold) {
-                posTerm = (positionDiff * Kp) / 200;
+                posTerm = (positionDiff * Kp) / 50;  // VERSTÄRKT: 4x stärkere Positions-Korrektur
             }
             
             u = pTerm + iTerm + posTerm;
@@ -517,8 +576,8 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
             if (u > maxAdjustment) u = maxAdjustment;
             if (u < -maxAdjustment) u = -maxAdjustment;
         } else {
-            // Innerhalb Deadzone - Integral langsam abbauen
-            integralError = (integralError * 9) / 10;
+            // Innerhalb Deadzone - Integral langsam abbauen (5% pro Zyklus)
+            integralError = (integralError * 95) / 100;
         }
     }
     
@@ -528,7 +587,7 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     
     if (phase == 2) {
         // Ramp-Down: PWM proportional zur verbleibenden Distanz reduzieren
-        int16_t rampFactor = (remainingTicks * 100) / rampDownThreshold;
+        int16_t rampFactor = (int16_t)((remainingTicks * 100) / rampDownThreshold);
         if (rampFactor < 30) rampFactor = 30;   // Min. 30% PWM
         if (rampFactor > 100) rampFactor = 100;
         basePWMLeft = (targetPWMLeft * rampFactor) / 100;
@@ -536,8 +595,9 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     }
     
     // Symmetrische PWM-Anpassung
-    int16_t pwmLeft = basePWMLeft - u;
-    int16_t pwmRight_new = basePWMRight + u;
+    // Wenn speedR > speedL (speedDiff > 0, u > 0): rechts bremsen, links beschleunigen
+    int16_t pwmLeft = basePWMLeft + u;
+    int16_t pwmRight_new = basePWMRight - u;
     
     // Slew-Rate Limit
     if (lastPWMLeft != 0) {
@@ -559,13 +619,461 @@ void drive_Forward_ticks(int16_t targetTicksValue, int16_t pwmRight) {
     
     Motor_setPWM(pwmLeft, pwmRight_new);
     
-    // Logging (10 Hz)
+    // Logging (10 Hz) - TEMPORÄR DEAKTIVIERT
+    /*
     if (timeTask_getDuration(&lastLogTime, &now) >= logInterval) {
         int16_t speedDiff = filteredSpeedR - filteredSpeedL;
-        communication_log(LEVEL_INFO, "P%" PRIu8 ": sL=%" PRId16 " sR=%" PRId16 " rem=%" PRId16 " u=%" PRId16 " pL=%" PRId16 " pR=%" PRId16, 
-                         phase, filteredSpeedL, filteredSpeedR, remainingTicks, u, pwmLeft, pwmRight_new);
+        communication_log(LEVEL_INFO, "P%" PRIu8 ": sL=%" PRId16 " sR=%" PRId16 " rem=%" PRId32 " u=%" PRId16 " I=%" PRId32 " pL=%" PRId16 " pR=%" PRId16,
+                         phase, filteredSpeedL, filteredSpeedR, remainingTicks, u, integralError, pwmLeft, pwmRight_new);
+        // Debug: Encoder-Werte und Deltas loggen (nur alle 1 Sekunde, um Spam zu vermeiden)
+        static uint8_t debugLogCounter = 0;
+        if (++debugLogCounter >= 10) {  // Alle 1 Sekunde (10 * 100ms)
+            communication_log(LEVEL_INFO, "DEBUG: Enc R=%" PRId16 " L=%" PRId16 " startR=%" PRId16 " startL=%" PRId16 " deltaR=%" PRId32 " deltaL=%" PRId32 " avgDelta=%" PRId32,
+                           currentEncoderR, currentEncoderL, startEncoderR, startEncoderL, deltaR, deltaL, avgDelta);
+            debugLogCounter = 0;
+        }
         timeTask_getTimestamp(&lastLogTime);
     }
+    */
+    
+    // Werte für nächsten Zyklus speichern
+    lastEncoderR = currentEncoderR;
+    lastEncoderL = currentEncoderL;
+    timeTask_getTimestamp(&controlLoopTime);
+}
+
+// Fahre eine bestimmte Anzahl von Encoder-Ticks vorwärts mit Wandverfolgung und Parallelitäts-Kontrolle
+void drive_Forward_ticks_with_wall_following(int32_t targetTicksValue, int16_t pwmRight) {
+    // ==================== STATISCHE VARIABLEN ====================
+    // Initialisierung und Zustand
+    static uint8_t initialized = 0;
+    static uint8_t phase = 0;  // 0 = Soft-Start, 1 = Fahren, 2 = Abbremsen
+    
+    // Encoder-Werte
+    static int16_t startEncoderR = 0;
+    static int16_t startEncoderL = 0;
+    static int16_t lastEncoderR = 0;
+    static int16_t lastEncoderL = 0;
+    static int16_t lastEncoderR_acc = 0;  // Für Overflow-sichere Akkumulation
+    static int16_t lastEncoderL_acc = 0;
+    static int32_t accumulatedDeltaR = 0; // Akkumulierte Ticks (Overflow-sicher)
+    static int32_t accumulatedDeltaL = 0;
+    
+    // PWM-Werte
+    static int16_t targetPWMLeft = 0;
+    static int16_t targetPWMRight = 0;
+    static int16_t currentSoftStartPWM = 0;
+    static int16_t lastPWMLeft = 0;
+    static int16_t lastPWMRight = 0;
+    
+    // Timing
+    static timeTask_time_t startOfDrive;
+    static timeTask_time_t softStartTime;
+    static timeTask_time_t controlLoopTime;
+    static timeTask_time_t lastLogTime;
+    
+    // PI-Regler
+    static int32_t integralError = 0;
+    static int16_t speedFilterR[3] = {0, 0, 0};
+    static int16_t speedFilterL[3] = {0, 0, 0};
+    static uint8_t filterIndex = 0;
+    static uint8_t stallCounter = 0;
+    
+    // Wall-Following Filter für Parallelitäts-Kontrolle
+    static int16_t last_distance_diff = 0;
+    static int16_t distance_diff_filter[3] = {0, 0, 0};
+    static uint8_t diff_filter_index = 0;
+    
+    // ==================== KONSTANTEN ====================
+    // Soft-Start Parameter
+    const int16_t softStartMinPWM = 1000;       // Start-PWM für Soft-Start
+    const int16_t softStartStep = 200;          // PWM-Schrittweite für Soft-Start
+    const uint32_t softStartInterval = 50000UL; // 50ms zwischen Soft-Start-Schritten
+    
+    // OPTIMIERTE PI-Regler Parameter für bessere Performance bei Asymmetrien
+    const int16_t Kp = 100;                     // ERHÖHT: Proportional-Verstärkung (+100% für stärkere Korrektur)
+    const int16_t Ki = 10;                      // AKTIVIERT: Integral-Verstärkung für Langzeit-Korrektur
+    const int32_t maxIntegral = 3000;           // REDUZIERT: Anti-Windup Grenze für stabileren I-Anteil
+    const int16_t deadZone = 1;                 // REDUZIERT: Totzone für sensitivere Regelung
+    const int16_t maxAdjustment = 1000;         // ERHÖHT: Maximale PWM-Korrektur (+100% für stärkere Asymmetrien)
+    const int16_t maxSlewRate = 150;            // ERHÖHT: Maximale PWM-Änderung pro Zyklus (+50%)
+    const int16_t positionCorrectionThreshold = 3; // REDUZIERT: Schwelle für frühere Positions-Korrektur
+
+    // Timing Parameter
+    const uint32_t controlLoopInterval = 20000UL; // 20ms Regelzyklus
+    // const uint32_t logInterval = 100000UL;        // 100ms Log-Intervall - TEMPORÄR DEAKTIVIERT
+    const int16_t minSpeedTicks = 2;              // REDUZIERT: Mindest-Ticks für frühere Regelung
+    
+    // Abbremsen Parameter
+    const int16_t rampDownThreshold = 100;      // Ticks vor Ziel: Abbremsen beginnen
+    
+    // Wall-Following Parameter (konfigurierbar - verwende globale Konfigurationsvariablen)
+    int16_t wall_detection_threshold_mm = wall_detection_threshold_mm_config;      // Schwellwert für Wand-Erkennung (45mm)
+    int16_t wall_correction_threshold_mm = wall_correction_threshold_mm_config;     // Ab wann korrigieren (50mm)
+    int16_t wall_distance_gain = wall_distance_gain_config;               // Korrektur-Verstärkung für Distanz (PWM pro mm)
+    int16_t wall_parallel_gain = wall_parallel_gain_config;               // Korrektur-Verstärkung für Parallelität (PWM pro mm Differenz)
+    const int16_t max_wall_correction_pwm = 400;         // Maximale PWM-Korrektur durch Wandverfolgung
+    int16_t center_target_distance_mm = center_target_distance_mm_config;        // Ziel-Distanz zur Wand bei zwei Wänden (Mitte)
+    const int16_t parallel_tolerance_mm = 3;             // Toleranz für "parallel" (mm Differenz zwischen Sensoren)
+    const int16_t max_valid_distance_mm = 200;           // Maximal gültige Distanz für Sensor-Werte
+    
+    // ==================== WAND-ERKENNUNG ====================
+    if (currentState == drive_Forward_distance_then_explore) {
+        if (ADC_getFilteredValue(2) > 750) {
+            Motor_stopAll();
+            communication_log(LEVEL_INFO, "Front wall detected - stopping movement");
+            updateLabyrinthPosition();
+            setState(ExploreMaze);
+            initialized = 0;
+            return;
+        }
+    }
+    
+    // ==================== INITIALISIERUNG ====================
+    if (!initialized) {
+        timeTask_getTimestamp(&startOfDrive);
+        
+        // Encoder-Startwerte speichern
+        startEncoderR = encoder_getCountR();
+        startEncoderL = encoder_getCountL();
+        lastEncoderR = startEncoderR;
+        lastEncoderL = startEncoderL;
+        // Akkumulierte Deltas für Overflow-sichere Messung initialisieren
+        lastEncoderR_acc = startEncoderR;
+        lastEncoderL_acc = startEncoderL;
+        accumulatedDeltaR = 0;
+        accumulatedDeltaL = 0;
+        communication_log(LEVEL_INFO, "Start-Encoder: R=%" PRId16 " L=%" PRId16, startEncoderR, startEncoderL);
+        
+        // PWM-Werte setzen
+        targetPWMRight = pwmRight;
+        targetPWMLeft = calibration_getPWMLeft(pwmRight);
+        
+        // Sicherheitsprüfung
+        if (targetPWMLeft <= 0) {
+            communication_log(LEVEL_WARNING, "PWM Left ungültig (%" PRId16 "), verwende %" PRId16, targetPWMLeft, pwmRight);
+            targetPWMLeft = pwmRight;
+        }
+        if (targetPWMRight <= 0) {
+            communication_log(LEVEL_WARNING, "PWM Right ungültig (%" PRId16 "), verwende 3000", targetPWMRight);
+            targetPWMRight = 3000;
+        }
+        
+        // Soft-Start beginnen
+        currentSoftStartPWM = softStartMinPWM;
+        Motor_setPWM(currentSoftStartPWM, currentSoftStartPWM);
+        timeTask_getTimestamp(&softStartTime);
+        timeTask_getTimestamp(&controlLoopTime);
+        timeTask_getTimestamp(&lastLogTime);
+        
+        // Reset PI-Regler
+        integralError = 0;
+        filterIndex = 0;
+        stallCounter = 0;
+        lastPWMLeft = 0;
+        lastPWMRight = 0;
+        for (uint8_t i = 0; i < 3; i++) {
+            speedFilterR[i] = 0;
+            speedFilterL[i] = 0;
+            distance_diff_filter[i] = 0;
+        }
+        last_distance_diff = 0;
+        diff_filter_index = 0;
+        
+        phase = 0;
+        initialized = 1;
+        communication_log(LEVEL_INFO, "Fahre %" PRId32 " Ticks mit Wandverfolgung, Ziel-PWM L=%" PRId16 " R=%" PRId16, 
+                         targetTicksValue, targetPWMLeft, targetPWMRight);
+    }
+    
+    // ==================== AKTUELLE WERTE LESEN ====================
+    timeTask_time_t now;
+    timeTask_getTimestamp(&now);
+    
+    int16_t currentEncoderR = encoder_getCountR();
+    int16_t currentEncoderL = encoder_getCountL();
+    
+    // Overflow-sichere Delta-Berechnung durch Akkumulation kleiner Inkremente
+    // Die Subtraktion von int16_t-Werten behandelt Overflow automatisch korrekt (2er-Komplement)
+    int16_t incR = currentEncoderR - lastEncoderR_acc;
+    int16_t incL = currentEncoderL - lastEncoderL_acc;
+    accumulatedDeltaR += incR;
+    accumulatedDeltaL += incL;
+    lastEncoderR_acc = currentEncoderR;
+    lastEncoderL_acc = currentEncoderL;
+    
+    int32_t deltaR = accumulatedDeltaR;
+    int32_t deltaL = accumulatedDeltaL;
+    int32_t avgDelta = (deltaL + deltaR) / 2;
+    int32_t remainingTicks = targetTicksValue - avgDelta;
+    int16_t positionDiff = (int16_t)(deltaR - deltaL);  // Positions-Differenz zwischen Rädern
+    
+    // ==================== ZIEL ERREICHT? ====================
+    if (avgDelta >= targetTicksValue) {
+        Motor_stopAll();
+        
+        int32_t encoderDiff = deltaR - deltaL;
+        int32_t absEncoderDiff = (encoderDiff > 0) ? encoderDiff : -encoderDiff;
+        uint16_t actualDistance_mm = (uint16_t)(avgDelta * 688 / 10000);
+        uint32_t duration_ms = timeTask_getDuration(&startOfDrive, &now) / 1000;
+        
+        communication_log(LEVEL_INFO, "=== Fahrt abgeschlossen (mit Wandverfolgung) ===");
+        communication_log(LEVEL_INFO, "Ziel: %" PRId32 " Ticks, Erreicht: %" PRId32 " Ticks", targetTicksValue, avgDelta);
+        communication_log(LEVEL_INFO, "Encoder L=%" PRId32 " R=%" PRId32 " Diff=%" PRId32, deltaL, deltaR, encoderDiff);
+        communication_log(LEVEL_INFO, "Distanz: ~%u mm, Zeit: %lu ms", actualDistance_mm, (unsigned long)duration_ms);
+        
+        if (absEncoderDiff <= 2) {
+            communication_log(LEVEL_INFO, "Kalibrierung: EXZELLENT");
+        } else if (absEncoderDiff <= 5) {
+            communication_log(LEVEL_INFO, "Kalibrierung: GUT");
+        } else if (absEncoderDiff <= 10) {
+            communication_log(LEVEL_INFO, "Kalibrierung: AKZEPTABEL");
+        } else {
+            communication_log(LEVEL_WARNING, "Kalibrierung: SCHLECHT - Neu kalibrieren!");
+        }
+        communication_log(LEVEL_INFO, "===========================");
+        
+        setState(IDLE);
+        initialized = 0;
+        return;
+    }
+    
+    // ==================== PHASE 0: SOFT-START ====================
+    if (phase == 0) {
+        if (timeTask_getDuration(&softStartTime, &now) >= softStartInterval) {
+            currentSoftStartPWM += softStartStep;
+            
+            int16_t minTargetPWM = (targetPWMLeft < targetPWMRight) ? targetPWMLeft : targetPWMRight;
+            if (currentSoftStartPWM >= minTargetPWM) {
+                // Soft-Start abgeschlossen -> Phase 1
+                Motor_setPWM(targetPWMLeft, targetPWMRight);
+                lastEncoderR = currentEncoderR;
+                lastEncoderL = currentEncoderL;
+                timeTask_getTimestamp(&controlLoopTime);
+                phase = 1;
+                communication_log(LEVEL_INFO, "Soft-Start fertig, fahre mit PWM L=%" PRId16 " R=%" PRId16, 
+                                 targetPWMLeft, targetPWMRight);
+            } else {
+                Motor_setPWM(currentSoftStartPWM, currentSoftStartPWM);
+                timeTask_getTimestamp(&softStartTime);
+            }
+        }
+        return;
+    }
+    
+    // ==================== PHASE 1 & 2: FAHREN MIT PI-REGLER ====================
+    if (timeTask_getDuration(&controlLoopTime, &now) < controlLoopInterval) {
+        return;  // Noch nicht Zeit für nächsten Regelzyklus
+    }
+    
+    // Prüfe ob Abbremsen beginnen soll
+    if (phase == 1 && remainingTicks <= (int32_t)rampDownThreshold) {
+        phase = 2;
+        communication_log(LEVEL_INFO, "Beginne Abbremsen, verbleibend: %" PRId32 " Ticks", remainingTicks);
+    }
+    
+    // Geschwindigkeit berechnen
+    int16_t speedR = currentEncoderR - lastEncoderR;
+    int16_t speedL = currentEncoderL - lastEncoderL;
+    
+    // Gleitender Durchschnitt (3er Filter)
+    speedFilterR[filterIndex] = speedR;
+    speedFilterL[filterIndex] = speedL;
+    filterIndex = (filterIndex + 1) % 3;
+    
+    int16_t filteredSpeedR = (speedFilterR[0] + speedFilterR[1] + speedFilterR[2]) / 3;
+    int16_t filteredSpeedL = (speedFilterL[0] + speedFilterL[1] + speedFilterL[2]) / 3;
+    int16_t absSpeedR = (filteredSpeedR > 0) ? filteredSpeedR : -filteredSpeedR;
+    int16_t absSpeedL = (filteredSpeedL > 0) ? filteredSpeedL : -filteredSpeedL;
+    
+    // Stall-Erkennung
+    if (absSpeedR < minSpeedTicks && absSpeedL < minSpeedTicks) {
+        stallCounter++;
+        if (stallCounter > 10) {
+            communication_log(LEVEL_WARNING, "Stall erkannt! Speed L=%" PRId16 " R=%" PRId16, filteredSpeedL, filteredSpeedR);
+            stallCounter = 0;
+        }
+    } else {
+        stallCounter = 0;
+    }
+    
+    // PI-Regler berechnen
+    int16_t u = 0;
+    if (absSpeedR >= minSpeedTicks || absSpeedL >= minSpeedTicks) {
+        int16_t speedDiff = filteredSpeedR - filteredSpeedL;
+        int16_t absSpeedDiff = (speedDiff > 0) ? speedDiff : -speedDiff;
+        int16_t absPositionDiff = (positionDiff > 0) ? positionDiff : -positionDiff;
+        
+        if (absSpeedDiff > deadZone || absPositionDiff > deadZone) {
+            // P-Anteil
+            int16_t pTerm = (speedDiff * Kp) / 100;
+            
+            // I-Anteil mit Anti-Windup
+            integralError += speedDiff;
+            if (integralError > maxIntegral) integralError = maxIntegral;
+            if (integralError < -maxIntegral) integralError = -maxIntegral;
+            int16_t iTerm = (integralError * Ki) / 100;
+            
+            // Positions-Korrektur
+            int16_t posTerm = 0;
+            if (absPositionDiff > positionCorrectionThreshold) {
+                posTerm = (positionDiff * Kp) / 50;  // VERSTÄRKT: 4x stärkere Positions-Korrektur
+            }
+            
+            u = pTerm + iTerm + posTerm;
+            
+            // Begrenzung
+            if (u > maxAdjustment) u = maxAdjustment;
+            if (u < -maxAdjustment) u = -maxAdjustment;
+        } else {
+            // Innerhalb Deadzone - Integral langsam abbauen (5% pro Zyklus)
+            integralError = (integralError * 95) / 100;
+        }
+    }
+    
+    // ==================== WANDVERFOLGUNG MIT PARALLELITÄTS-KONTROLLE ====================
+    int16_t wall_correction = 0;
+    
+    // Lese Distanzen der vorderen IR-Sensoren
+    int16_t right_front_distance = CalibrateIRSensors(0);  // RIGHT_FRONT
+    int16_t left_front_distance = CalibrateIRSensors(3);   // LEFT_FRONT
+    
+    // Prüfe ob Sensoren gültige Werte liefern (Distanz > 0 und < Max-Distanz)
+    if (right_front_distance > 0 && right_front_distance < max_valid_distance_mm &&
+        left_front_distance > 0 && left_front_distance < max_valid_distance_mm) {
+        
+        // Beide Wände erkannt -> Mitte halten UND parallel fahren
+        int16_t distance_diff = right_front_distance - left_front_distance;
+        int16_t avg_distance = (right_front_distance + left_front_distance) / 2;
+        
+        // Gleitender Durchschnitt für stabilere Parallelitäts-Messung
+        distance_diff_filter[diff_filter_index] = distance_diff;
+        diff_filter_index = (diff_filter_index + 1) % 3;
+        int16_t filtered_diff = (distance_diff_filter[0] + distance_diff_filter[1] + distance_diff_filter[2]) / 3;
+        
+        if (avg_distance < wall_correction_threshold_mm) {
+            // Zwei Komponenten der Korrektur:
+            
+            // 1. DISTANZ-KORREKTUR: Zu nah an Wänden -> Korrigiere zur Mitte
+            int16_t distance_error = center_target_distance_mm - avg_distance;
+            int16_t distance_correction = (distance_error * wall_distance_gain) / 10;
+            
+            // 2. PARALLELITÄTS-KORREKTUR: Nicht parallel -> Korrigiere Winkel
+            // Wenn filtered_diff > 0: Rechts näher -> nach links drehen (negativ)
+            // Wenn filtered_diff < 0: Links näher -> nach rechts drehen (positiv)
+            int16_t parallel_correction = 0;
+            if (filtered_diff > parallel_tolerance_mm || filtered_diff < -parallel_tolerance_mm) {
+                // Trend-Erkennung: Wird die Differenz größer oder kleiner?
+                int16_t diff_change = filtered_diff - last_distance_diff;
+                
+                // Adaptive Korrektur: Wenn Differenz zunimmt, stärkere Korrektur
+                int16_t parallel_gain_adaptive = wall_parallel_gain;
+                if (diff_change > 2 || diff_change < -2) {
+                    parallel_gain_adaptive = wall_parallel_gain * 3 / 2;  // 50% stärker bei Trend
+                }
+                
+                parallel_correction = -(filtered_diff * parallel_gain_adaptive) / 10;
+                last_distance_diff = filtered_diff;
+            } else {
+                // Parallel - keine Korrektur nötig, aber Historie aktualisieren
+                last_distance_diff = filtered_diff;
+            }
+            
+            // Kombiniere beide Korrekturen
+            wall_correction = distance_correction + parallel_correction;
+            
+            // Begrenze Gesamt-Korrektur
+            if (wall_correction > max_wall_correction_pwm) wall_correction = max_wall_correction_pwm;
+            if (wall_correction < -max_wall_correction_pwm) wall_correction = -max_wall_correction_pwm;
+        }
+        
+    } else if (right_front_distance > 0 && right_front_distance < max_valid_distance_mm &&
+               right_front_distance < wall_correction_threshold_mm) {
+        
+        // Nur rechte Wand erkannt -> Distanz halten UND parallel fahren
+        // Da nur ein Sensor Wand sieht, können wir nicht direkt Parallelität messen
+        // Aber: Wir können die Distanz konstant halten (keine Drift)
+        
+        int16_t distance_error = wall_detection_threshold_mm - right_front_distance;
+        
+        // Korrektur nach links (weg von Wand)
+        wall_correction = (distance_error * wall_distance_gain) / 5;
+        
+        // Zusätzlich: Wenn Distanz zu nah, stärkere Korrektur
+        if (right_front_distance < wall_detection_threshold_mm) {
+            wall_correction += (wall_detection_threshold_mm - right_front_distance) * 2;
+        }
+        
+        if (wall_correction > max_wall_correction_pwm) wall_correction = max_wall_correction_pwm;
+        
+    } else if (left_front_distance > 0 && left_front_distance < max_valid_distance_mm &&
+               left_front_distance < wall_correction_threshold_mm) {
+        
+        // Nur linke Wand erkannt -> Distanz halten UND parallel fahren
+        int16_t distance_error = wall_detection_threshold_mm - left_front_distance;
+        
+        // Korrektur nach rechts (weg von Wand) - NEGATIV
+        wall_correction = -(distance_error * wall_distance_gain) / 5;
+        
+        // Zusätzlich: Wenn Distanz zu nah, stärkere Korrektur
+        if (left_front_distance < wall_detection_threshold_mm) {
+            wall_correction -= (wall_detection_threshold_mm - left_front_distance) * 2;
+        }
+        
+        if (wall_correction < -max_wall_correction_pwm) wall_correction = -max_wall_correction_pwm;
+    }
+    // Wenn keine Wand erkannt -> wall_correction bleibt 0
+    
+    // Basis-PWM bestimmen (mit Ramp-Down in Phase 2)
+    int16_t basePWMLeft = targetPWMLeft;
+    int16_t basePWMRight = targetPWMRight;
+    
+    if (phase == 2) {
+        // Ramp-Down: PWM proportional zur verbleibenden Distanz reduzieren
+        int16_t rampFactor = (int16_t)((remainingTicks * 100) / rampDownThreshold);
+        if (rampFactor < 30) rampFactor = 30;   // Min. 30% PWM
+        if (rampFactor > 100) rampFactor = 100;
+        basePWMLeft = (targetPWMLeft * rampFactor) / 100;
+        basePWMRight = (targetPWMRight * rampFactor) / 100;
+    }
+    
+    // Kombiniere PI-Regler-Korrektur mit Wandverfolgung
+    int16_t total_correction = u + wall_correction;
+    
+    // Symmetrische PWM-Anpassung (ursprünglich mit u, jetzt mit total_correction)
+    int16_t pwmLeft = basePWMLeft - total_correction;
+    int16_t pwmRight_new = basePWMRight + total_correction;
+    
+    // Slew-Rate Limit
+    if (lastPWMLeft != 0) {
+        int16_t dL = pwmLeft - lastPWMLeft;
+        int16_t dR = pwmRight_new - lastPWMRight;
+        if (dL > maxSlewRate) pwmLeft = lastPWMLeft + maxSlewRate;
+        if (dL < -maxSlewRate) pwmLeft = lastPWMLeft - maxSlewRate;
+        if (dR > maxSlewRate) pwmRight_new = lastPWMRight + maxSlewRate;
+        if (dR < -maxSlewRate) pwmRight_new = lastPWMRight - maxSlewRate;
+    }
+    lastPWMLeft = pwmLeft;
+    lastPWMRight = pwmRight_new;
+    
+    // Absolute Grenzen
+    if (pwmLeft < 1000) pwmLeft = 1000;
+    if (pwmLeft > 8191) pwmLeft = 8191;
+    if (pwmRight_new < 1000) pwmRight_new = 1000;
+    if (pwmRight_new > 8191) pwmRight_new = 8191;
+    
+    Motor_setPWM(pwmLeft, pwmRight_new);
+    
+    // Logging (10 Hz) - TEMPORÄR DEAKTIVIERT
+    /*
+    if (timeTask_getDuration(&lastLogTime, &now) >= logInterval) {
+        int16_t distance_diff_log = right_front_distance - left_front_distance;
+        communication_log(LEVEL_INFO, "P%" PRIu8 ": sL=%" PRId16 " sR=%" PRId16 " rem=%" PRId32 " u=%" PRId16 " wall=%" PRId16 " RF=%" PRId16 "mm LF=%" PRId16 "mm diff=%" PRId16 " pL=%" PRId16 " pR=%" PRId16,
+                         phase, filteredSpeedL, filteredSpeedR, remainingTicks, u, wall_correction,
+                         right_front_distance, left_front_distance, distance_diff_log, pwmLeft, pwmRight_new);
+        timeTask_getTimestamp(&lastLogTime);
+    }
+    */
     
     // Werte für nächsten Zyklus speichern
     lastEncoderR = currentEncoderR;
@@ -771,11 +1279,68 @@ int16_t absAngle= (angle_degrees > 0) ? angle_degrees : -angle_degrees;
                 communication_log(LEVEL_INFO, "===========================");
 
                 
-               setState(IDLE);//Temp
-                //setState(CorrectRotationMovement_Wait);
+               
+                setState(CorrectRotationMovement_Wait);
                 initialized = 0;
             }
         }
     }
 #undef communication_log
+}
+
+// ==================== SETTER-FUNKTIONEN FÜR WALL-FOLLOWING PARAMETER ====================
+
+
+void statemachine_setWallDetectionThreshold(int16_t threshold_mm) {
+    if (threshold_mm > 0 && threshold_mm < 200) {
+        wall_detection_threshold_mm_config = threshold_mm;
+        communication_log(LEVEL_INFO, "Wall detection threshold set to %" PRId16 " mm", threshold_mm);
+    } else {
+        communication_log(LEVEL_WARNING, "Invalid wall detection threshold: %" PRId16, threshold_mm);
+    }
+}
+
+void statemachine_setWallCorrectionThreshold(int16_t threshold_mm) {
+    if (threshold_mm > 0 && threshold_mm < 200) {
+        wall_correction_threshold_mm_config = threshold_mm;
+        communication_log(LEVEL_INFO, "Wall correction threshold set to %" PRId16 " mm", threshold_mm);
+    } else {
+        communication_log(LEVEL_WARNING, "Invalid wall correction threshold: %" PRId16, threshold_mm);
+    }
+}
+
+void statemachine_setWallDistanceGain(int16_t gain) {
+    if (gain > 0 && gain < 200) {
+        wall_distance_gain_config = gain;
+        communication_log(LEVEL_INFO, "Wall distance gain set to %" PRId16, gain);
+    } else {
+        communication_log(LEVEL_WARNING, "Invalid wall distance gain: %" PRId16, gain);
+    }
+}
+
+void statemachine_setWallParallelGain(int16_t gain) {
+    if (gain > 0 && gain < 200) {
+        wall_parallel_gain_config = gain;
+        communication_log(LEVEL_INFO, "Wall parallel gain set to %" PRId16, gain);
+    } else {
+        communication_log(LEVEL_WARNING, "Invalid wall parallel gain: %" PRId16, gain);
+    }
+}
+
+void statemachine_setCenterTargetDistance(int16_t distance_mm) {
+    if (distance_mm > 0 && distance_mm < 200) {
+        center_target_distance_mm_config = distance_mm;
+        communication_log(LEVEL_INFO, "Center target distance set to %" PRId16 " mm", distance_mm);
+    } else {
+        communication_log(LEVEL_WARNING, "Invalid center target distance: %" PRId16, distance_mm);
+    }
+}
+
+void statemachine_setWallCorrectionEnabled(uint8_t enabled) {
+    wall_correction_enabled = enabled ? 1 : 0;
+    communication_log(LEVEL_INFO, "Wall correction %s", wall_correction_enabled ? "ENABLED" : "DISABLED");
+}
+
+uint8_t statemachine_isWallCorrectionEnabled(void) {
+    return wall_correction_enabled;
 }
