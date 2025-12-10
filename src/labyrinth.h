@@ -49,5 +49,7 @@ Direction_t leastVisitedDirection();
 
 void DriveDirection(Direction_t nextDirection);
 
+float OdomErr();
+
 void resetMaze();
 #endif // LABYRINTH_H

@@ -25,7 +25,7 @@ void position_updateExpectedPose(void);
  * 
  * @return Zeiger auf die aktuelle Pose (nicht NULL)
  */
-const Pose_t* position_getCurrentPose(void);
+Pose_t* position_getCurrentPose(void);
 
 /**
  * @brief Setzt die Pose manuell (für Kalibrierung oder Reset)

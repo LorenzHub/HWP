@@ -31,8 +31,8 @@ void exploreMaze() {
     if(!initialized){
         srand(time(NULL));  // intialize random generator
         resetMaze();
-        statemachine_setTargetDistance(243); //Cell size 253.3mm with wall
-        statemachine_setTargetPWM(5500);
+        statemachine_setTargetDistance(238); //Cell size 253.3mm with wall
+        statemachine_setTargetPWM(4000);
         initialized=1;
     }
 
@@ -355,7 +355,22 @@ float normalizeAngleRad(float a) {
 }
 
 
+float OdomErr(){
+    const Pose_t* currentPose = position_getCurrentPose();
+    const float threshold_rad = 0.05f; // ~2.86°
+    float desired = 0.0f;
 
+    switch (labyrinthPose.cardinalDirection) {
+        case DIRECTION_NORTH: desired = M_PI_2; break;
+        case DIRECTION_EAST:  desired = 0.0f;   break;
+        case DIRECTION_SOUTH: desired = -M_PI_2; break; 
+        case DIRECTION_WEST:  desired = M_PI;   break;
+        default: return;
+    }
+
+    float err = normalizeAngleRad(desired - currentPose->theta); // desired - current
+    return fabsf(err);
+}
 
 
 void correctOrientation() {
@@ -375,9 +390,10 @@ void correctOrientation() {
     
     float err = normalizeAngleRad(desired - currentPose->theta); // desired - current
 
-
+    
     if (fabsf(err) <= threshold_rad) {
-    setState(ExploreMaze);
+    statemachine_setTargetAngle(0);
+    setState(correctOrientation_done);
     return;
     }
 
@@ -389,8 +405,8 @@ void correctOrientation() {
     communication_log(LEVEL_INFO, "correctOrientation: cardinal=%" PRIu8 " targetAngle=%" PRId16 " theta_mrad=%" PRId16,
     (uint8_t)labyrinthPose.cardinalDirection, -targetAngle, theta_mrad);
 
-    statemachine_setTargetPWM(5500);
+    statemachine_setTargetPWM(4000);
     statemachine_setTargetAngle(-targetAngle);
-    setState(Turn_On_Spot_degrees_then_explore); 
+    setState(correctOrientation_done); 
 
 }

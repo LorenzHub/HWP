@@ -79,8 +79,9 @@ void position_updateExpectedPose(void) {
     // Prüfe ob Geradeausfahrt (nur bei sehr kleinen Differenzen)
     // Threshold: 2-3 Ticks für numerische Stabilität
     const int16_t threshold = 3;
-    
-    if (absDiffLR < threshold) {
+    bool sameDirection = (deltaR >= 0 && deltaL >= 0) || (deltaR <= 0 && deltaL <= 0);
+
+    if (sameDirection && abs(deltaR - deltaL) < threshold) {
         // Fall 1: Geradeausfahrt
         // Verwende Durchschnitt beider Räder für genauere Berechnung
         float avgDelta = ((float)(deltaR + deltaL) / 2.0f);
@@ -91,17 +92,17 @@ void position_updateExpectedPose(void) {
     } else {
         // Fall 2: Kurvenfahrt
         // Berechne Winkeländerung
-        float dTheta = (float)diffLR * params->distPerTick / params->axleWidth;
+        double dTheta = (double)diffLR * (double)params->distPerTick *0.0058823529;
         
         // Berechne Kurvenradius
-        float R = ((float)(deltaR + deltaL) / (float)diffLR) * (params->axleWidth / 2.0f);
+        double R = ((double)(deltaR + deltaL) / (double)diffLR) * (85);
         
         // Berechne Positionsänderung
-        expectedPose.x += R * (sinf(expectedPose.theta + dTheta) - sinf(expectedPose.theta));
-        expectedPose.y += R * (cosf(expectedPose.theta) - cosf(expectedPose.theta + dTheta));
+        expectedPose.x += R * (sin((double)expectedPose.theta + dTheta) - sin((double)expectedPose.theta));
+        expectedPose.y += R * (cos((double)expectedPose.theta) - cos((double)expectedPose.theta + dTheta));
         
         // Aktualisiere Theta
-        expectedPose.theta += dTheta;
+        expectedPose.theta += (float)dTheta;
     }
     
     // Normalisiere Theta auf [-π, +π]
@@ -113,7 +114,7 @@ void position_updateExpectedPose(void) {
     }
 }
 
-const Pose_t* position_getCurrentPose(void) {
+Pose_t* position_getCurrentPose(void) {
     return &expectedPose;
 }
 

@@ -310,6 +310,14 @@ int main(void) {
     // do forever
     for (;;) {
 
+        
+        /*
+        if (checkIfAprilUpdateAvailableInShortFuture()==1){
+            setNextState(currentState);
+            setState(waitAndGetAprilTagPose);
+        }
+        */
+
         stateMachine();
 
         TIMETASK(LED_TASK, 500) { // execute block approximately every 500ms
@@ -363,23 +371,17 @@ int main(void) {
             }
             communication_writePacket(CH_OUT_POSE, (uint8_t*)&pose, poseSize);
         }
-
-        TIMETASK(GET_POSE_TASK, 500) { // execute block approximately every 500ms (2 Hz)
+        
+        
+        TIMETASK(GET_POSE_TASK, 25000) { // execute block approximately every 25s
             // Fordere Kamera-Pose von HWPCS an
             // HWPCS antwortet mit Pose_t auf CH_IN_POSE (wird von commPose() verarbeitet)
             GetPose_t getPose;
             getPose.aprilTagType = APRIL_TAG_MAIN;
             communication_writePacket(CH_OUT_GET_POSE, (uint8_t*)&getPose, sizeof(GetPose_t));
-            
-            // Logge nur alle 10 Sekunden (20 Anfragen) um Log-Spam zu vermeiden
-            static uint16_t requestCount = 0;
-            if (++requestCount >= 20) {
-                communication_log(LEVEL_FINE, "Pose-Anfrage gesendet (automatisch, alle 500ms)");
-                requestCount = 0;
-            }
-
         }
-
+        
+        
         TIMETASK(USER_DATA_TASK, 100) { // execute block approximately every 100ms (10 Hz)
             // Sende Pose-Differenz an HWPCS für grafische Visualisierung im User Data View
             // float1 = Differenz X (mm), float2 = Differenz Y (mm), float3 = Differenz Theta (rad)
@@ -416,7 +418,7 @@ int main(void) {
             }
         }
 
-        TIMETASK(WALL_TASK, 500) {
+        TIMETASK(WALL_TASK, 100) {
 			 const LabyrinthWalls_t* wallData = labyrinth_getAllWalls();
 			 communication_writePacket(CH_OUT_LABY_WALLS, (uint8_t*)wallData, sizeof(*wallData));
 		 }

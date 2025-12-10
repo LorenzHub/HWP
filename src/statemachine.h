@@ -16,12 +16,12 @@ typedef enum {
     Turn_On_Spot_Degrees,
     ExploreMaze,
     drive_Forward_distance_then_explore,
-    Turn_On_Spot_degrees_then_explore,
+    correctOrientation_done,
     turn_On_Spot_degrees_then_drive,
     FollowThePath,
     CorrectRotationMovement,
     CorrectRotationMovement_Wait,
-    Drive_Forward_Ticks_With_Wall_Following
+    waitAndGetAprilTagPose
 } state;
 
 /* currentState is defined in statemachine.c to avoid multiple definitions
@@ -41,13 +41,15 @@ void turn_On_Spot_degrees(int16_t angle_degrees, int16_t pwm);
 void statemachine_setTargetAngle(int16_t angle_degrees);
 void drive_Forward_distance_mm_then_explore(uint16_t distance_mm, int16_t pwmRight);
 void turn_degrees_then_drive(int16_t angle_degrees, int16_t pwm);
+void doAfterCorrectOrientation(targetAngle_degrees, targetPWM);
 void correctRotationMovement(void);
-void drive_Forward_ticks_with_wall_following(int32_t targetTicks, int16_t pwmRight);
 void statemachine_setWallDetectionThreshold(int16_t threshold_mm);
 void statemachine_setWallCorrectionThreshold(int16_t threshold_mm);
 void statemachine_setWallDistanceGain(int16_t gain);
 void statemachine_setWallParallelGain(int16_t gain);
 void statemachine_setCenterTargetDistance(int16_t distance_mm);
+void setNextState(state s);
+int checkIfAprilUpdateAvailableInShortFuture();
 
 // Wandkorrektur Ein/Aus
 void statemachine_setWallCorrectionEnabled(uint8_t enabled);
