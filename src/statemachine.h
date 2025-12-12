@@ -21,7 +21,8 @@ typedef enum {
     FollowThePath,
     CorrectRotationMovement,
     CorrectRotationMovement_Wait,
-    waitAndGetAprilTagPose
+    waitAndGetAprilTagPose,
+    waitForFirstAprilTagPose
 } state;
 
 /* currentState is defined in statemachine.c to avoid multiple definitions

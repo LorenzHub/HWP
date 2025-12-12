@@ -5,10 +5,8 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-//check axleWidth, kAngular, forwardVelocity and conversion to PWM
-//implement poseUpdate via Apriltracking data
 
-#define axleWidth 170.0f 
+#define axleWidth 166.5f 
 
 static float vLeft = 0.0f;
 static float vRight = 0.0f;

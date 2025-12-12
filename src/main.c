@@ -40,8 +40,8 @@ static Pose_t pose = { 0.0f, 0.0f, M_PI_2 };
 
 // Robot parameters for odometry calculation
 static RobotParameters_t robotParams = {
-    .axleWidth = 170.0f,      // mm (aus encoder.h Kommentaren)
-    .distPerTick = 0.0688f,   // mm/Tick (2048 Ticks = 1 Rad-Umdrehung)
+    .axleWidth = 166.5f,      // mm (aus encoder.h Kommentaren)
+    .distPerTick = 0.0688f *1.03,   // mm/Tick (2048 Ticks = 1 Rad-Umdrehung)
     .user1 = 0.0f,
     .user2 = 0.0f
 };
@@ -81,7 +81,7 @@ static void commRobotParameters(const uint8_t* packet, __attribute__((unused)) c
     communication_log(LEVEL_INFO, "Robot-Parameter: axleWidth=%d cm, distPerTick=%d um/Tick", 
                      axleWidth_cm, distPerTick_um);
 }
-
+extern AprilTagReceived;
 // callback function for communication channel CH_IN_POSE (Scene View in HWPCS)
 static void commPose(const uint8_t* packet, const uint16_t size) {
     // WICHTIG: Diese Funktion wird aufgerufen, wenn HWPCS eine Pose sendet
@@ -90,15 +90,23 @@ static void commPose(const uint8_t* packet, const uint16_t size) {
         communication_log(LEVEL_WARNING, "commPose: Falsche Paketgroesse: %" PRIu16 " Bytes (erwartet: %zu)", size, sizeof(Pose_t));
         return;
     }
+
+    AprilTagReceived = 1;
+
+    if(currentState == waitForFirstAprilTagPose){
+        setState(ExploreMaze); //just set initial pose once
+    }
+
     Pose_t* aprilTagPose = (Pose_t*)packet;
     
     // Setze Pose (wichtig: vor Log-Ausgabe, damit sie gespeichert ist)
-    position_setAprilTagPose(aprilTagPose);
+    //position_setAprilTagPose(aprilTagPose);
     
     // Konvertiere Float-Werte zu Integer für Log-Ausgabe (AVR unterstützt kein Float-Format)
     int16_t x = (int16_t)(aprilTagPose->x);
     int16_t y = (int16_t)(aprilTagPose->y);
     int16_t theta_mrad = (int16_t)(aprilTagPose->theta * 1000.0f);  // Theta in Milliradiant
+    //position_calculatePoseDifference();
     communication_log(LEVEL_INFO, "Kamera-Pose empfangen: x=%d y=%d theta=%d mrad", 
                      x, y, theta_mrad);
 }
@@ -316,7 +324,8 @@ int main(void) {
             setNextState(currentState);
             setState(waitAndGetAprilTagPose);
         }
-        */
+            */
+        
 
         stateMachine();
 

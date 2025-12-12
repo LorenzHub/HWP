@@ -92,12 +92,23 @@ void stateMachine() {
         case waitAndGetAprilTagPose:
             WaitAndGetAprilTagPose();
             break;    
+        case waitForFirstAprilTagPose:
+            nextState = ExploreMaze;
+            WaitAndGetAprilTagPose();
+            nextState = ExploreMaze;
+            break;
     }
 }
 
+int AprilTagReceived = 0;
+
+static timeTask_time_t waitStart;
+
+static Aprilinitialized = 0;
+
 int checkIfAprilUpdateAvailableInShortFuture(){
+    if (Aprilinitialized == 0) return 0; //only after first april tag pose is received
     static uint8_t initialized = 0;
-    static timeTask_time_t waitStart;
     
     if (!initialized) {
         timeTask_getTimestamp(&waitStart);
@@ -107,36 +118,24 @@ int checkIfAprilUpdateAvailableInShortFuture(){
     timeTask_time_t now;
     timeTask_getTimestamp(&now);
     
-    // Warte 22 Sekunde
-    const uint32_t waitTime_us = 22000000UL;
+    // Warte 23 Sekunde
+    const uint32_t waitTime_us = 20000000UL;
     
     if (timeTask_getDuration(&waitStart, &now) >= waitTime_us) {
         initialized = 0;
-        setState(nextState);
         return 1;
     }
     return 0;
 }
 
 void WaitAndGetAprilTagPose(void){
-    static uint8_t initialized = 0;
-    static timeTask_time_t waitStart;
-    
-    if (!initialized) {
-        timeTask_getTimestamp(&waitStart);
-        initialized = 1;
-    }
-    
-    timeTask_time_t now;
-    timeTask_getTimestamp(&now);
-    
-    // Warte 3 Sekunde
-    const uint32_t waitTime_us = 3000000UL;
-    
-    if (timeTask_getDuration(&waitStart, &now) >= waitTime_us) {
-        initialized = 0;
+    if (AprilTagReceived == 1) {
+        communication_log(LEVEL_INFO, "AprilTagPose received!");
         position_calculatePoseDifference();
+        timeTask_getTimestamp(&waitStart);
         setState(nextState);
+        AprilTagReceived = 0;
+        Aprilinitialized = 1;
     }
 }
 
@@ -184,7 +183,7 @@ void doAfterCorrectOrientation(int16_t angle_degrees, int16_t pwm){
         }
     }
     else if(initialized_drive == 3){
-        drive_Forward_distance_mm(238, 4000);
+        drive_Forward_distance_mm(246, 4000);
     }
     if (currentState == CorrectRotationMovement_Wait) {
             //communication_log(LEVEL_INFO, "ExploreMaze set");
@@ -251,7 +250,8 @@ static int16_t calculateCorrectionAngle(int16_t diff, float sensorDistance_mm) {
 
 void correctRotationMovement(void) {
     communication_log(LEVEL_INFO, "TRYING Correcting rotation movement");
-
+    communication_log(LEVEL_INFO, "RIGHT_FRONT: %d RIGHT_BACK: %d FRONT: %d LEFT_FRONT: %d LEFT_BACK: %d", 
+        CalibrateIRSensors(0), CalibrateIRSensors(1), CalibrateIRSensors(2), CalibrateIRSensors(3), CalibrateIRSensors(4));
     // Hole Sensorwerte
     uint16_t rightFrontADC = ADC_getFilteredValue(0);  // IR1 - Right Front
     uint16_t leftFrontADC = ADC_getFilteredValue(3);   // IR4 - Left Front
@@ -262,7 +262,7 @@ void correctRotationMovement(void) {
     int16_t angle_deg;
     Pose_t* currentPose = position_getCurrentPose();
     
-    if(rightFrontADC > 400) { // Rechte Wand in gutem Abstand
+    if(CalibrateIRSensors(0) < 60) { // Rechte Wand in gutem Abstand
         int16_t diff = CalibrateIRSensors(1) - CalibrateIRSensors(0);
         
         if(diff < -correctionDistance_mm) {
@@ -299,7 +299,7 @@ void correctRotationMovement(void) {
             }
         }
     }
-    else if(leftFrontADC > 400) { // Linke Wand in gutem Abstand
+    else if(CalibrateIRSensors(3) < 60) { // Linke Wand in gutem Abstand
         int16_t diff = CalibrateIRSensors(4) - CalibrateIRSensors(3);
         
         if(diff < -correctionDistance_mm) {
@@ -337,11 +337,11 @@ void correctRotationMovement(void) {
         }
     }
     else {
-        // Keine Wand erkannt (beide < 400)
+        // Keine Wand erkannt 
         communication_log(LEVEL_INFO, "no wall found for correction (R=%u, L=%u)", rightFrontADC, leftFrontADC);
         communication_log(LEVEL_INFO, "initialized_drive %" PRIu8 " ", initialized_drive);
         
-        if(OdomErr() > 0.05f){
+        if(OdomErr() > 0.05f /*&&initialized_drive == 1*/ ){
             if(initialized_drive == 1){ //called after drive forward is done
                 communication_log(LEVEL_INFO, "correctOrientation called after drive forward");
                 correctOrientation();
@@ -351,7 +351,7 @@ void correctRotationMovement(void) {
                 correctOrientation();
             }
         }
-        else{ //correctOrientation was called 
+        else{ 
              if(initialized_drive == 1){
                 //updateLabyrinthPosition();
                 setState(ExploreMaze);
@@ -428,7 +428,7 @@ void drive_Forward_ticks(int32_t targetTicksValue, int16_t pwmRight) {
     
     // ==================== WAND-ERKENNUNG ====================
     if (currentState == drive_Forward_distance_then_explore || currentState == correctOrientation_done) {
-        if (ADC_getFilteredValue(2) > 750) {
+        if (ADC_getFilteredValue(2) > 730) {
             Motor_stopAll();
             #undef communication_log
             communication_log(LEVEL_INFO, "Front wall detected - stopping movement");
@@ -679,8 +679,19 @@ void drive_Forward_ticks(int32_t targetTicksValue, int16_t pwmRight) {
     if (pwmRight_new < 1000) pwmRight_new = 1000;
     if (pwmRight_new > 8191) pwmRight_new = 8191;
     
-    //Offset Left
-    pwmLeft = (int16_t) ((float)pwmLeft * 1.02f);
+    /*
+    //TODO: Fall, falls keine/nur eine Wand vorhanden
+
+    //Offset 
+    if(CalibrateIRSensors(3) > (CalibrateIRSensors(0)+3)){ // left front bigger than right front
+        pwmLeft = (int16_t) ((float)pwmLeft * 1.07f);
+    } 
+    else if(CalibrateIRSensors(0) > (CalibrateIRSensors(3)+3)){ // right front bigger than left front
+        pwmLeft = (int16_t) ((float)pwmLeft * 0.97f);
+    }
+    */
+
+    pwmLeft = (int16_t) ((float)pwmLeft * 1.03f);
 
     Motor_setPWM(pwmLeft, pwmRight_new);
     

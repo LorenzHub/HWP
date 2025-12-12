@@ -31,10 +31,13 @@ void exploreMaze() {
     if(!initialized){
         srand(time(NULL));  // intialize random generator
         resetMaze();
-        statemachine_setTargetDistance(238); //Cell size 253.3mm with wall
+        statemachine_setTargetDistance(246); //Cell size 253.3mm with wall
         statemachine_setTargetPWM(4000);
         initialized=1;
+        //setState(waitForFirstAprilTagPose);
     }
+
+    //if(currentState == waitForFirstAprilTagPose) return; //wait until april tag pose is set
 
     if(isPlace()){
         choosePlaceDirection();
